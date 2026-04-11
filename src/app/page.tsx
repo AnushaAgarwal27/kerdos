@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ChevronRight, Bell, Search, User } from "lucide-react";
 import MarketTicker from "@/components/MarketTicker";
+import CreditCard, { type CreditCardData } from "@/components/CreditCard";
+import { USER_CARDS } from "@/lib/userCards";
+import { getLinkedCardIds } from "@/lib/linkedCards";
 
 const INDEX_CARDS = [
   { label: "DJIA",    value: "40,657.56", change: "-26.00", pct: "-0.09%", up: false },
@@ -37,7 +40,24 @@ const NEWS = [
 ];
 
 export default function HomePage() {
-  const [newsTab, setNewsTab] = useState<"top" | "portfolio">("top");
+  const [newsTab, setNewsTab]   = useState<"top" | "portfolio">("top");
+  const [cards, setCards]       = useState<CreditCardData[]>([]);
+  const [linkedIds, setLinkedIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/rewards")
+      .then(r => r.json())
+      .then((apiCards: any[]) => {
+        setCards(apiCards.map(c => ({
+          id: c.id, issuer: c.cardIssuer ?? c.id, name: c.cardName ?? c.id,
+          last4: USER_CARDS[c.id]?.last4 ?? "0000",
+          network: c.cardNetwork ?? "",
+          color: USER_CARDS[c.id]?.color ?? "other",
+        })));
+      })
+      .catch(() => {});
+    setLinkedIds(getLinkedCardIds());
+  }, []);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -118,6 +138,33 @@ export default function HomePage() {
                 <p className="text-lg font-bold text-white">{s.value}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-2)" }}>{s.label}</p>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cards carousel */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-white">Your Cards</span>
+            <Link
+              href="/plaid-link"
+              target="_blank"
+              className="text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors"
+              style={{ borderColor: "var(--green)", color: "var(--green)" }}
+            >
+              + Connect
+            </Link>
+          </div>
+          {linkedIds && (
+            <p className="text-xs mb-2" style={{ color: "var(--text-2)" }}>
+              {linkedIds.length} card{linkedIds.length !== 1 ? "s" : ""} linked via Plaid
+            </p>
+          )}
+          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+            {cards.map((card, i) => (
+              <motion.div key={card.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
+                <CreditCard card={card} width={200} />
+              </motion.div>
             ))}
           </div>
         </div>
