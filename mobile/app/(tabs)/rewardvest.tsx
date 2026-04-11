@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import DonutChart from '@/components/DonutChart';
 import AnimatedBar from '@/components/AnimatedBar';
 import FadeIn from '@/components/FadeIn';
+import MarketTicker from '@/components/MarketTicker';
 import { COLORS } from '@/constants/theme';
 import { USER_CARDS } from '@/lib/userCards';
 import { API_BASE } from '@/lib/apiConfig';
@@ -133,13 +134,13 @@ export default function RewardVestScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.topHeader}>
+        <Text style={styles.tag}>INVEST</Text>
+        <Text style={styles.title}>AI Investment Advisor</Text>
+        <Text style={styles.subtitle}>Your rewards aren't just points — they're capital.</Text>
+      </View>
+      <MarketTicker />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        <FadeIn delay={0}>
-          <Text style={styles.tag}>📈 RewardVest</Text>
-          <Text style={styles.title}>AI Investment Advisor</Text>
-          <Text style={styles.subtitle}>Your rewards aren't just points — they're capital.</Text>
-        </FadeIn>
 
         {/* Stats */}
         <FadeIn delay={60} style={styles.statsRow}>
@@ -291,9 +292,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
-  tag: { fontSize: 12, color: COLORS.blue, fontWeight: '700', marginBottom: 6 },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 4 },
+  topHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 4 },
+  tag: { fontSize: 10, color: COLORS.green, fontWeight: '700', letterSpacing: 2 },
+  title: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary },
   statsRow: { flexDirection: 'row', gap: 10 },
   statCard: { flex: 1, backgroundColor: COLORS.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
   statValue: { fontSize: 18, fontWeight: '800' },

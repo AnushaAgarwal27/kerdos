@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AnimatedBar from '@/components/AnimatedBar';
 import FadeIn from '@/components/FadeIn';
+import MarketTicker from '@/components/MarketTicker';
 import { COLORS } from '@/constants/theme';
 import { USER_CARDS } from '@/lib/userCards';
 import { API_BASE } from '@/lib/apiConfig';
@@ -94,25 +95,20 @@ export default function SmartSwipeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        {/* Fixed header + ticker above scroll */}
+        <View style={styles.topHeader}>
+          <Text style={styles.tag}>SMARTSWIPE</Text>
+          <Text style={styles.title}>Best Card Recommender</Text>
+          <Text style={styles.subtitle}>
+            {loading
+              ? 'Loading live reward rates...'
+              : linkedCardIds
+              ? `${activeCards.length} linked card${activeCards.length !== 1 ? 's' : ''} via Plaid`
+              : 'Enter a purchase — we rank every card instantly.'}
+          </Text>
+        </View>
+        <MarketTicker />
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-          {/* Header */}
-          <FadeIn delay={0}>
-            <View style={styles.header}>
-              <View style={styles.tagRow}>
-                <View style={styles.tagDot} />
-                <Text style={styles.tag}>SMARTSWIPE</Text>
-              </View>
-              <Text style={styles.title}>Best Card{'\n'}Recommender</Text>
-              <Text style={styles.subtitle}>
-                {loading
-                  ? 'Loading live reward rates...'
-                  : linkedCardIds
-                  ? `Ranking ${activeCards.length} linked card${activeCards.length !== 1 ? 's' : ''} via Plaid`
-                  : 'Enter a purchase — we rank every card instantly.'}
-              </Text>
-            </View>
-          </FadeIn>
 
           {/* Amount */}
           <FadeIn delay={60} style={styles.card}>
@@ -287,12 +283,10 @@ const styles = StyleSheet.create({
   scroll:  { flex: 1 },
   content: { padding: 20, gap: 14 },
 
-  header:   { gap: 6, marginBottom: 4 },
-  tagRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tagDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.green },
-  tag:      { fontSize: 11, color: COLORS.green, fontWeight: '700', letterSpacing: 1.5 },
-  title:    { fontSize: 30, fontWeight: '800', color: '#fff', lineHeight: 36 },
-  subtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  topHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 4 },
+  tag:      { fontSize: 10, color: COLORS.green, fontWeight: '700', letterSpacing: 2 },
+  title:    { fontSize: 22, fontWeight: '800', color: '#fff' },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary },
 
   card:      { backgroundColor: COLORS.bgCard, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border, gap: 12 },
   cardLabel: { fontSize: 10, color: COLORS.textMuted, letterSpacing: 2, fontWeight: '700' },

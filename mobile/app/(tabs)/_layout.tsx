@@ -63,15 +63,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.tabBar,
     borderTopColor: COLORS.border,
     borderTopWidth: 1,
-    height: 80,
-    paddingTop: 8,
+    height: 72,
+    paddingTop: 6,
   },
   iconWrap: {
     alignItems: 'center',
-    gap: 3,
+    gap: 2,
   },
   emoji: {
-    fontSize: 22,
+    fontSize: 20,
   },
   label: {
     fontSize: 10,
@@ -80,5 +80,6 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: COLORS.green,
+    fontWeight: '700',
   },
 });

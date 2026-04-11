@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import BarChart from '@/components/BarChart';
 import AnimatedBar from '@/components/AnimatedBar';
 import FadeIn from '@/components/FadeIn';
+import MarketTicker from '@/components/MarketTicker';
 import { COLORS } from '@/constants/theme';
 import { USER_CARDS } from '@/lib/userCards';
 import { API_BASE } from '@/lib/apiConfig';
@@ -86,15 +87,17 @@ export default function WealthSplitScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.topHeader}>
+        <Text style={styles.tag}>SUMMARY</Text>
+        <Text style={styles.title}>Financial Command Center</Text>
+        <Text style={styles.subtitle}>Savings, rewards, splits — all in one view.</Text>
+      </View>
+      <MarketTicker />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <FadeIn delay={0} style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.tag}>⚖️ WealthSplit</Text>
-            <Text style={styles.title}>Command Center</Text>
-            <Text style={styles.subtitle}>Savings, rewards, splits — all in one view.</Text>
-          </View>
           <LinearGradient colors={['rgba(74,222,128,0.12)', 'rgba(34,211,238,0.06)']} style={styles.netBadge}>
             <Text style={styles.netLabel}>Net Score</Text>
             <Text style={styles.netValue}>+$847</Text>
@@ -295,9 +298,10 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 20, gap: 14 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  tag: { fontSize: 12, color: COLORS.purple, fontWeight: '700', marginBottom: 6 },
-  title: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  subtitle: { fontSize: 13, color: COLORS.textSecondary, maxWidth: 180 },
+  topHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 4 },
+  tag: { fontSize: 10, color: COLORS.green, fontWeight: '700', letterSpacing: 2 },
+  title: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary },
   netBadge: { borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(74,222,128,0.25)', minWidth: 100 },
   netLabel: { fontSize: 9, color: COLORS.textMuted, letterSpacing: 1 },
   netValue: { fontSize: 22, fontWeight: '800', color: COLORS.green, marginVertical: 2 },

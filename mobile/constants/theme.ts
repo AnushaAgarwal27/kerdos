@@ -1,39 +1,35 @@
 // ─── THEME ───────────────────────────────────────────────────────────────────
-// Edit these to change the global look of the app.
 
 export const COLORS = {
-  bg: '#0a0a0f',
-  bgCard: '#111118',
-  bgCardHover: '#16161f',
-  border: 'rgba(255,255,255,0.07)',
-  borderStrong: 'rgba(255,255,255,0.14)',
+  bg:      '#0f0f0f',
+  bgCard:  '#1a1a1a',
+  bgCard2: '#232323',
+  border:  '#2c2c2e',
+  borderStrong: 'rgba(255,255,255,0.18)',
 
-  text: '#e8e8f0',
-  textSecondary: 'rgba(255,255,255,0.5)',
-  textMuted: 'rgba(255,255,255,0.28)',
+  text:          '#ffffff',
+  textSecondary: '#8e8e93',
+  textMuted:     '#48484a',
 
-  green: '#4ade80',
-  greenDim: 'rgba(74,222,128,0.12)',
-  blue: '#60a5fa',
-  blueDim: 'rgba(96,165,250,0.12)',
-  purple: '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.12)',
-  yellow: '#facc15',
-  red: '#f87171',
+  green:    '#00c805',   // Fidelity green
+  greenDim: 'rgba(0,200,5,0.12)',
+  blue:     '#0a84ff',
+  blueDim:  'rgba(10,132,255,0.12)',
+  purple:   '#bf5af2',
+  purpleDim:'rgba(191,90,242,0.12)',
+  yellow:   '#ffd60a',
+  red:      '#ff3b30',
 
-  tabBar: '#0d0d16',
+  tabBar: '#111111',
 };
 
-// ─── ANIMATION TIMINGS ────────────────────────────────────────────────────────
-// Tune these to speed up / slow down animations site-wide.
 export const ANIM = {
-  fast: 200,   // quick feedback (button press)
-  normal: 350, // standard transition
-  slow: 600,   // entry animations
-  orb: 2500,   // health orb pulse period
+  fast:   200,
+  normal: 350,
+  slow:   600,
+  orb:    2500,
 };
 
-// ─── CARD GRADIENTS ──────────────────────────────────────────────────────────
 export const CARD_GRADIENTS: Record<string, [string, string]> = {
   amex:    ['#1a1a2e', '#0f3460'],
   chase:   ['#1a0533', '#2d0d63'],
