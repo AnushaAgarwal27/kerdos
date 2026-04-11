@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -10,81 +10,126 @@ import { COLORS } from '@/constants/theme';
 import { USER_CARDS } from '@/lib/userCards';
 import { API_BASE } from '@/lib/apiConfig';
 
+const THIS_MONTH = 340;
+const TOTAL_EARNED = Object.values(USER_CARDS).reduce((s, c) => s + c.totalEarned, 0);
+
 const STOCK_TICKERS = [
   { ticker: 'VOO',  name: 'Vanguard S&P 500',   price: 498.32, changePct:  0.65 },
-  { ticker: 'QQQ',  name: 'Invesco Nasdaq 100',  price: 432.18, changePct:  1.27 },
-  { ticker: 'SPY',  name: 'SPDR S&P 500',        price: 521.67, changePct:  0.56 },
-  { ticker: 'VTI',  name: 'Vanguard Total Mkt',  price: 242.53, changePct: -0.36 },
-  { ticker: 'ARKK', name: 'ARK Innovation',      price: 47.83,  changePct:  2.62 },
-  { ticker: 'BND',  name: 'Vanguard Bond',       price: 73.14,  changePct: -0.16 },
-];
-
-const PORTFOLIO_SPLIT = [
-  { name: 'VOO',          pct: 60, color: '#4ade80', desc: 'Vanguard S&P 500 ETF'  },
-  { name: 'QQQ',          pct: 25, color: '#60a5fa', desc: 'Invesco Nasdaq 100'    },
-  { name: 'Cash Reserve', pct: 15, color: '#a78bfa', desc: 'High-yield savings'    },
+  { ticker: 'QQQ',  name: 'Invesco Nasdaq 100',  price: 437.21, changePct:  0.91 },
+  { ticker: 'SPY',  name: 'SPDR S&P 500',        price: 501.14, changePct:  0.62 },
+  { ticker: 'VTI',  name: 'Vanguard Total Mkt',  price: 258.47, changePct:  0.58 },
+  { ticker: 'ARKK', name: 'ARK Innovation',      price: 48.90,  changePct: -0.43 },
+  { ticker: 'BND',  name: 'Vanguard Bond',       price: 73.21,  changePct:  0.11 },
 ];
 
 const MONTHLY_DATA = [
-  { month: 'Nov', rewards: 210, savings: 380 },
-  { month: 'Dec', rewards: 290, savings: 440 },
-  { month: 'Jan', rewards: 245, savings: 390 },
-  { month: 'Feb', rewards: 310, savings: 510 },
-  { month: 'Mar', rewards: 318, savings: 495 },
-  { month: 'Apr', rewards: 340, savings: 520 },
+  { month: 'Nov', rewards: 210 },
+  { month: 'Dec', rewards: 248 },
+  { month: 'Jan', rewards: 275 },
+  { month: 'Feb', rewards: 292 },
+  { month: 'Mar', rewards: 318 },
+  { month: 'Apr', rewards: 340 },
 ];
 
-const THIS_MONTH   = 340;
-const TOTAL_EARNED = Object.values(USER_CARDS).reduce((s, c) => s + c.totalEarned, 0);
+const CARD_LIST = Object.entries(USER_CARDS).map(([id, c]) => ({ id, ...c }));
 
-const AI_INSIGHTS = [
-  'VOO has outperformed 94% of active funds over 10 years — ideal anchor for your rewards.',
-  'At $340/mo compounding at 7% annual return, that\'s $48,200 in 10 years.',
-  'QQQ\'s tech concentration complements high dining/entertainment spending patterns.',
-  'Maintaining 15% cash reserve lets you buy dips without liquidating positions.',
-];
+const ALLOCATION_COLORS = ['#4ade80', '#60a5fa', '#a78bfa', '#fbbf24', '#f87171'];
+
+interface Allocation {
+  ticker: string;
+  percentage: number;
+  description: string;
+  expectedReturn: number;
+}
+
+interface AiAdvice {
+  allocations: Allocation[];
+  summary: string;
+  insights: string[];
+  projectedAnnualReturn: number;
+  marketRegime: {
+    regime: string;
+    bquantScore: number;
+    bloombergPrediction: string;
+  };
+}
 
 const SPRING = { friction: 6, tension: 300, useNativeDriver: true };
-
-type ApiCard = { id: string; cardName: string; cardIssuer: string; cardNetwork: string };
 
 export default function RewardVestScreen() {
   const [portfolioVisible, setPortfolioVisible] = useState(false);
   const [isGenerating,     setIsGenerating]     = useState(false);
-  const [insightIdx,       setInsightIdx]        = useState(0);
-  const [apiCards,         setApiCards]          = useState<ApiCard[]>([]);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/rewards`)
-      .then(r => r.json())
-      .then(setApiCards)
-      .catch(() => {});
-  }, []);
+  const [aiAdvice,         setAiAdvice]          = useState<AiAdvice | null>(null);
+  const [apiError,         setApiError]          = useState(false);
   const btnScale  = useRef(new Animated.Value(1)).current;
   const spinValue = useRef(new Animated.Value(0)).current;
   const spinAnim  = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setPortfolioVisible(true), 700);
-    return () => clearTimeout(t);
+    fetchAdvice();
   }, []);
+
+  const fetchAdvice = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/ai-advice?totalRewards=${THIS_MONTH}`);
+      if (!res.ok) throw new Error('API error');
+      const json = await res.json();
+      setAiAdvice(json);
+      setApiError(false);
+    } catch {
+      setApiError(true);
+    } finally {
+      setTimeout(() => setPortfolioVisible(true), 300);
+    }
+  };
 
   const generate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsGenerating(true);
     setPortfolioVisible(false);
     spinValue.setValue(0);
-    spinAnim.current = Animated.loop(Animated.timing(spinValue, { toValue: 1, duration: 900, useNativeDriver: true }));
+    spinAnim.current = Animated.loop(
+      Animated.timing(spinValue, { toValue: 1, duration: 900, useNativeDriver: true })
+    );
     spinAnim.current.start();
-    setTimeout(() => {
+    setTimeout(async () => {
+      await fetchAdvice();
       spinAnim.current?.stop();
       setPortfolioVisible(true);
       setIsGenerating(false);
-      setInsightIdx(Math.floor(Math.random() * AI_INSIGHTS.length));
     }, 2200);
   };
 
   const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  // Build donut segments from real API or fallback to mockData
+  const donutSegments = aiAdvice
+    ? aiAdvice.allocations.map((a, i) => ({
+        name: a.ticker,
+        pct: a.percentage,
+        color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length],
+        desc: a.description,
+      }))
+    : [
+        { name: 'VOO', pct: 60, color: '#4ade80', desc: 'Vanguard S&P 500 ETF' },
+        { name: 'QQQ', pct: 25, color: '#60a5fa', desc: 'Invesco Nasdaq 100' },
+        { name: 'Cash', pct: 15, color: '#a78bfa', desc: 'High-yield savings' },
+      ];
+
+  const insights: string[] = aiAdvice?.insights ?? [
+    'VOO has outperformed 94% of active funds over 10 years — ideal anchor for your rewards.',
+    'At $340/mo compounding at 7% annual return, that\'s $48,200 in 10 years.',
+    'Maintaining 15% cash reserve lets you buy dips without liquidating positions.',
+  ];
+
+  const bquant = aiAdvice?.marketRegime;
+  const regimeColor = bquant?.regime === 'bullish' ? COLORS.green : bquant?.regime === 'defensive' ? COLORS.red : COLORS.yellow;
+  const regimeIcon  = bquant?.regime === 'bullish' ? '▲' : bquant?.regime === 'defensive' ? '▼' : '◆';
+
+  const projectedReturn = aiAdvice?.projectedAnnualReturn ?? 7;
+  const tenYearGrowth = Math.round(
+    THIS_MONTH * 12 * ((Math.pow(1 + projectedReturn / 100, 10) - 1) / (projectedReturn / 100))
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -99,9 +144,9 @@ export default function RewardVestScreen() {
         {/* Stats */}
         <FadeIn delay={60} style={styles.statsRow}>
           {[
-            { label: 'This Month',      value: `$${THIS_MONTH}`,               color: COLORS.green  },
+            { label: 'This Month',      value: `$${THIS_MONTH}`,                color: COLORS.green  },
             { label: 'All Time',        value: `$${TOTAL_EARNED.toLocaleString()}`, color: COLORS.blue   },
-            { label: '10-yr Projected', value: '$48,200',                       color: COLORS.purple },
+            { label: '10-yr Projected', value: `$${tenYearGrowth.toLocaleString()}`, color: COLORS.purple },
           ].map(s => (
             <View key={s.label} style={styles.statCard}>
               <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
@@ -110,22 +155,43 @@ export default function RewardVestScreen() {
           ))}
         </FadeIn>
 
+        {/* BQuant Signal — only shown when API responds */}
+        {bquant && (
+          <FadeIn delay={100}>
+            <View style={styles.bquantCard}>
+              <View style={styles.bquantAccent} />
+              <View style={styles.bquantHeader}>
+                <Text style={styles.bquantLabel}>⚡ BQUANT™ SIGNAL</Text>
+                <Text style={[styles.bquantRegime, { color: regimeColor }]}>
+                  {regimeIcon} {bquant.regime.toUpperCase()} · {bquant.bquantScore.toFixed(1)}/10
+                </Text>
+              </View>
+              <Text style={styles.bquantText}>{bquant.bloombergPrediction}</Text>
+            </View>
+          </FadeIn>
+        )}
+
         {/* Portfolio donut */}
         {portfolioVisible && (
           <FadeIn delay={0} style={styles.portfolioCard}>
             <LinearGradient colors={['rgba(96,165,250,0.1)', 'rgba(167,139,250,0.05)']} style={StyleSheet.absoluteFillObject} />
             <Text style={styles.sectionTitle}>Suggested Portfolio</Text>
-            <Text style={styles.sectionSub}>For your ${THIS_MONTH} in rewards this month</Text>
+            <Text style={styles.sectionSub}>
+              For your ${THIS_MONTH} in rewards this month
+              {apiError ? '  ⚠ offline' : '  · Bloomberg NQ'}
+            </Text>
             <View style={styles.donutRow}>
-              <DonutChart segments={PORTFOLIO_SPLIT} centerLabel={`$${THIS_MONTH}`} centerSub="to invest" size={170} />
+              <DonutChart segments={donutSegments} centerLabel={`$${THIS_MONTH}`} centerSub="to invest" size={170} />
               <View style={styles.donutLegend}>
-                {PORTFOLIO_SPLIT.map(p => (
+                {donutSegments.map((p, i) => (
                   <View key={p.name} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: p.color }]} />
                     <View>
                       <Text style={styles.legendName}>{p.name}</Text>
                       <Text style={styles.legendDesc}>{p.desc}</Text>
-                      <Text style={[styles.legendPct, { color: p.color }]}>{p.pct}% · ${((p.pct / 100) * THIS_MONTH).toFixed(0)}</Text>
+                      <Text style={[styles.legendPct, { color: p.color }]}>
+                        {p.pct}% · ${((p.pct / 100) * THIS_MONTH).toFixed(0)}
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -133,7 +199,7 @@ export default function RewardVestScreen() {
             </View>
             <View style={styles.insightBox}>
               <Text style={styles.insightTag}>🤖 AI Insight</Text>
-              <Text style={styles.insightText}>{AI_INSIGHTS[insightIdx]}</Text>
+              <Text style={styles.insightText}>{aiAdvice?.summary ?? insights[0]}</Text>
             </View>
           </FadeIn>
         )}
@@ -146,10 +212,12 @@ export default function RewardVestScreen() {
             onPress={generate} disabled={isGenerating}
           >
             <Animated.View style={[styles.generateBtn, { transform: [{ scale: btnScale }] }]}>
-              {isGenerating && (
-                <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]} />
-              )}
-              <Text style={styles.generateText}>{isGenerating ? 'Analyzing Market Signals...' : '🤖 Generate AI Portfolio Split'}</Text>
+              {isGenerating
+                ? <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]} />
+                : null}
+              <Text style={styles.generateText}>
+                {isGenerating ? 'Analyzing Bloomberg Signals...' : '🤖 Generate AI Portfolio Split'}
+              </Text>
             </Animated.View>
           </Pressable>
         </FadeIn>
@@ -199,22 +267,18 @@ export default function RewardVestScreen() {
         {/* Per-card */}
         <FadeIn delay={380} style={styles.breakdownCard}>
           <Text style={styles.sectionTitle}>Earnings by Card</Text>
-          {apiCards.map((card, i) => {
-            const uc = USER_CARDS[card.id];
-            const maxEarned = Math.max(...Object.values(USER_CARDS).map(c => c.totalEarned), 1);
-            return (
-              <View key={card.id} style={styles.breakdownRow}>
-                <View style={styles.breakdownLeft}>
-                  <Text style={styles.breakdownName}>{card.cardIssuer} {card.cardName}</Text>
-                  <Text style={styles.breakdownLast}>••••{uc?.last4 ?? '0000'}</Text>
-                </View>
-                <View style={{ flex: 1, marginHorizontal: 12 }}>
-                  <AnimatedBar progress={(uc?.totalEarned ?? 0) / maxEarned} delay={i * 80} color={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.08)']} height={5} />
-                </View>
-                <Text style={styles.breakdownVal}>${(uc?.totalEarned ?? 0).toLocaleString()}</Text>
+          {CARD_LIST.map((card, i) => (
+            <View key={card.id} style={styles.breakdownRow}>
+              <View style={styles.breakdownLeft}>
+                <Text style={styles.breakdownName}>{card.id.replace(/-/g, ' ')}</Text>
+                <Text style={styles.breakdownLast}>••••{card.last4}</Text>
               </View>
-            );
-          })}
+              <View style={{ flex: 1, marginHorizontal: 12 }}>
+                <AnimatedBar progress={card.totalEarned / CARD_LIST[0].totalEarned} delay={i * 80} color={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.08)']} height={5} />
+              </View>
+              <Text style={styles.breakdownVal}>${card.totalEarned.toLocaleString()}</Text>
+            </View>
+          ))}
         </FadeIn>
 
         <View style={{ height: 40 }} />
@@ -234,6 +298,12 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, backgroundColor: COLORS.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
   statValue: { fontSize: 18, fontWeight: '800' },
   statLabel: { fontSize: 9, color: COLORS.textMuted },
+  bquantCard: { backgroundColor: '#0f0a00', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)', gap: 6, position: 'relative', overflow: 'hidden' },
+  bquantAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: '#f97316' },
+  bquantHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bquantLabel: { fontSize: 10, fontWeight: '800', color: '#fb923c', fontFamily: 'monospace' },
+  bquantRegime: { fontSize: 10, fontWeight: '700', fontFamily: 'monospace' },
+  bquantText: { fontSize: 11, color: 'rgba(254,215,170,0.8)', lineHeight: 17, fontFamily: 'monospace' },
   portfolioCard: { borderRadius: 20, overflow: 'hidden', padding: 20, borderWidth: 1, borderColor: 'rgba(96,165,250,0.2)', gap: 14, backgroundColor: COLORS.bgCard },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
   sectionSub: { fontSize: 11, color: COLORS.textMuted, marginTop: -10 },
