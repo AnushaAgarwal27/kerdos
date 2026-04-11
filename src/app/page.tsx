@@ -6,7 +6,9 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import MarketTicker from "@/components/MarketTicker";
 import HealthOrb from "@/components/HealthOrb";
+import PlaidConnect from "@/components/PlaidConnect";
 import { USER_CARDS } from "@/lib/userCards";
+import { getLinkedCardIds } from "@/lib/linkedCards";
 
 const RECENT_TRANSACTIONS = [
   { id: 't1', cardId: 'amex-gold',      merchant: 'Nobu Restaurant',  date: 'Apr 10', category: 'dining',        amount: 148.5,  cashback: 11.88 },
@@ -63,7 +65,8 @@ const STATS = [
 ];
 
 export default function HomePage() {
-  const [cardNames, setCardNames] = useState<Record<string, string>>({});
+  const [cardNames,     setCardNames]     = useState<Record<string, string>>({});
+  const [linkedCardIds, setLinkedCardIds] = useState<string[] | null>(null);
 
   useEffect(() => {
     fetch("/api/rewards")
@@ -74,11 +77,13 @@ export default function HomePage() {
         setCardNames(map);
       })
       .catch(() => {});
+    // Load linked cards from localStorage
+    setLinkedCardIds(getLinkedCardIds());
   }, []);
 
   const totalPoints   = Object.values(USER_CARDS).reduce((s, c) => s + c.pointsBalance, 0);
   const totalCashback = Object.values(USER_CARDS).reduce((s, c) => s + c.totalEarned, 0);
-  const cardCount     = Object.keys(USER_CARDS).length;
+  const cardCount     = linkedCardIds ? linkedCardIds.length : Object.keys(USER_CARDS).length;
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -111,7 +116,7 @@ export default function HomePage() {
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 text-xs font-medium mb-6"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                5 cards linked · AI active
+                {cardCount} card{cardCount !== 1 ? "s" : ""} linked · AI active
               </motion.div>
 
               <motion.h1
@@ -155,6 +160,11 @@ export default function HomePage() {
                 >
                   View Dashboard
                 </Link>
+                <PlaidConnect
+                  onComplete={(mappings) => {
+                    setLinkedCardIds(mappings.map(m => m.cardId));
+                  }}
+                />
               </motion.div>
 
               {/* Quick stats */}

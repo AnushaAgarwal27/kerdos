@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import MarketTicker from "@/components/MarketTicker";
 import { USER_CARDS } from "@/lib/userCards";
+import { getLinkedCardIds } from "@/lib/linkedCards";
 
 const CATEGORIES = [
   { id: "dining",        label: "Dining",       icon: "🍽️" },
@@ -41,30 +42,37 @@ function rankCards(cards: ApiCard[], category: string, amount: number): CardResu
 }
 
 export default function SmartSwipePage() {
-  const [cards,       setCards]       = useState<ApiCard[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [amount,      setAmount]      = useState("");
-  const [merchant,    setMerchant]    = useState("");
-  const [category,    setCategory]    = useState("dining");
-  const [results,     setResults]     = useState<CardResult[] | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [cards,         setCards]         = useState<ApiCard[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [amount,        setAmount]        = useState("");
+  const [merchant,      setMerchant]      = useState("");
+  const [category,      setCategory]      = useState("dining");
+  const [results,       setResults]       = useState<CardResult[] | null>(null);
+  const [isAnalyzing,   setIsAnalyzing]   = useState(false);
+  const [linkedCardIds, setLinkedCardIds] = useState<string[] | null>(null);
 
   const parsedAmount = parseFloat(amount) || 0;
   const barMax = results?.[0]?.score ?? 1;
+
+  // Cards filtered to only Plaid-linked ones (or all if none linked)
+  const activeCards = linkedCardIds
+    ? cards.filter(c => linkedCardIds.includes(c.id))
+    : cards;
 
   useEffect(() => {
     fetch("/api/rewards")
       .then(r => r.json())
       .then(setCards)
       .finally(() => setLoading(false));
+    setLinkedCardIds(getLinkedCardIds());
   }, []);
 
   const analyze = () => {
-    if (parsedAmount <= 0 || !cards.length) return;
+    if (parsedAmount <= 0 || !activeCards.length) return;
     setIsAnalyzing(true);
     setResults(null);
     setTimeout(() => {
-      setResults(rankCards(cards, category, parsedAmount));
+      setResults(rankCards(activeCards, category, parsedAmount));
       setIsAnalyzing(false);
     }, 600);
   };
@@ -86,7 +94,12 @@ export default function SmartSwipePage() {
           </div>
           <h1 className="text-4xl font-bold text-white">Best Card Recommender</h1>
           <p className="text-white/40 mt-2 text-lg">Enter a purchase — we rank every card instantly.</p>
-          {loading && <p className="text-xs text-white/20 mt-2">Loading live reward rates...</p>}
+          {loading
+            ? <p className="text-xs text-white/20 mt-2">Loading live reward rates...</p>
+            : linkedCardIds
+              ? <p className="text-xs text-green-400 mt-2">Ranking {activeCards.length} linked card{activeCards.length !== 1 ? "s" : ""} via Plaid</p>
+              : <p className="text-xs text-white/20 mt-2">Ranking all 5 cards · <a href="/" className="underline hover:text-white/40 transition-colors">Connect via Plaid</a> to use only yours</p>
+          }
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -155,7 +168,7 @@ export default function SmartSwipePage() {
               whileHover={{ scale: parsedAmount > 0 ? 1.02 : 1 }}
               whileTap={{ scale: parsedAmount > 0 ? 0.97 : 1 }}
               onClick={analyze}
-              disabled={parsedAmount <= 0 || isAnalyzing || loading}
+              disabled={parsedAmount <= 0 || isAnalyzing || loading || activeCards.length === 0}
               className="w-full py-5 rounded-2xl font-bold text-lg transition-all duration-200 disabled:cursor-not-allowed bg-green-400 hover:bg-green-300 text-black disabled:bg-white/5 disabled:text-white/20"
             >
               {isAnalyzing ? "Analyzing..." : loading ? "Loading rates..." : "Analyze My Cards →"}
