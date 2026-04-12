@@ -342,7 +342,7 @@ export default function RewardVestPage() {
       <MarketTicker />
       <GlobalSpotlight gridRef={bentoRef} glowColor="0,200,5" spotlightRadius={380} />
 
-      <div ref={bentoRef} style={{ padding: "16px 28px 48px", maxWidth: 1280, margin: "0 auto" }}>
+      <div ref={bentoRef} className="bento-section" style={{ padding: "16px 28px 48px", maxWidth: 1280, margin: "0 auto" }}>
 
         {/* ── Stat strip — homepage Band 3 cards ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
@@ -390,11 +390,6 @@ export default function RewardVestPage() {
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "var(--font-display)" }}>
                   {sub}
                 </span>
-                {label === "Portfolio" && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: marketStatusColor, fontFamily: "var(--font-display)" }}>
-                    {marketStatusLabel}
-                  </span>
-                )}
               </ParticleCard>
             </motion.div>
           ))}
