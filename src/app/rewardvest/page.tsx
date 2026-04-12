@@ -3,22 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from 'echarts-for-react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Bar,
-  CartesianGrid,
-  ReferenceLine,
-} from "recharts";
 import MarketTicker from "@/components/MarketTicker";
 import { getMonthlyChart, getStore, getThisMonth } from "@/lib/rewardsStore";
 import {
@@ -299,6 +283,41 @@ export default function RewardVestPage() {
       halo: portfolio * 1.02,
     };
   });
+
+  // EMA 9/20 crossover detection for signal markers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const emaCrossovers: { idx: number; type: string; price: number }[] = nqBars.length > 1
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? nqBars.reduce((acc: { idx: number; type: string; price: number }[], bar: any, i: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const prev: any = nqBars[i - 1];
+        if (i === 0 || !bar.ema_9 || !bar.ema_20 || !prev.ema_9 || !prev.ema_20) return acc;
+        const bullish = prev.ema_9 <= prev.ema_20 && bar.ema_9 > bar.ema_20;
+        const bearish = prev.ema_9 >= prev.ema_20 && bar.ema_9 < bar.ema_20;
+        if (bullish || bearish) acc.push({ idx: i, type: bullish ? "bullish" : "bearish", price: bar.close });
+        return acc;
+      }, [])
+    : [];
+
+  // Wealth radar: portfolio score across 5 dimensions [growth, innovation, yield, liquidity, safety]
+  const radarScores: number[] = (() => {
+    const scoreMap: Record<string, number[]> = {
+      VOO:  [7, 4, 2, 7, 8],
+      QQQ:  [9, 8, 1, 8, 5],
+      VTI:  [7, 5, 2, 7, 8],
+      BND:  [2, 1, 7, 8, 9],
+      ARKK: [10, 10, 0, 6, 2],
+      JEPI: [5, 3, 9, 7, 7],
+      CASH: [1, 1, 4, 10, 10],
+      GLD:  [4, 2, 0, 6, 7],
+    };
+    const result = [0, 0, 0, 0, 0];
+    for (const a of displayAllocations) {
+      const s = scoreMap[a.ticker] ?? [5, 5, 5, 5, 5];
+      s.forEach((v, i) => { result[i] += (a.percentage / 100) * v; });
+    }
+    return result.map(v => Math.round(v * 10) / 10);
+  })();
 
   const cardStyle = {
     background: "var(--surface)",
@@ -622,56 +641,90 @@ export default function RewardVestPage() {
                     ${uninvestedBalance.toFixed(2)} available this month
                   </p>
 
-                  {/* Donut */}
+                  {/* Donut — ECharts 3D holographic pie */}
                   <div className="flex justify-center mb-5">
-                    <div className="relative chart-orb-shell">
-                      <PieChart width={210} height={190}>
-                        <defs>
-                          <filter id="donutGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feDropShadow dx="0" dy="22" stdDeviation="18" floodColor="#0b1020" floodOpacity="0.45" />
-                          </filter>
-                        </defs>
-                        {[12, 9, 6, 3].map((offset) => (
-                          <Pie
-                            key={offset}
-                            data={displayAllocations}
-                            cx={105}
-                            cy={92 + offset}
-                            innerRadius={56}
-                            outerRadius={88}
-                            paddingAngle={2}
-                            dataKey="percentage"
-                            startAngle={90}
-                            endAngle={-270}
-                            stroke="transparent"
-                            isAnimationActive={false}
-                          >
-                            {displayAllocations.map((_, i) => (
-                              <Cell
-                                key={`${offset}-${i}`}
-                                fill={shadeHex(ALLOCATION_COLORS[i % ALLOCATION_COLORS.length], 0.48 + offset * 0.018)}
-                              />
-                            ))}
-                          </Pie>
-                        ))}
-                        <Pie
-                          data={displayAllocations}
-                          cx={105}
-                          cy={88}
-                          innerRadius={56}
-                          outerRadius={88}
-                          paddingAngle={3}
-                          dataKey="percentage"
-                          startAngle={90}
-                          endAngle={-270}
-                          filter="url(#donutGlow)"
-                        >
-                          {displayAllocations.map((_, i) => (
-                            <Cell key={i} fill={ALLOCATION_COLORS[i % ALLOCATION_COLORS.length]} stroke="rgba(255,255,255,0.16)" strokeWidth={1} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="relative chart-orb-shell" style={{ width: 210, height: 200 }}>
+                      <ReactECharts
+                        option={{
+                          backgroundColor: "transparent",
+                          series: [
+                            // 3D shadow layers (far to near)
+                            ...[104, 101, 98, 95].map((cy, li) => ({
+                              type: "pie",
+                              radius: [56, 88],
+                              center: [105, cy],
+                              startAngle: 90,
+                              data: displayAllocations.map((a: Allocation, i: number) => ({
+                                value: a.percentage,
+                                itemStyle: {
+                                  color: shadeHex(ALLOCATION_COLORS[i % ALLOCATION_COLORS.length], 0.48 + (12 - li * 3) * 0.018),
+                                  borderWidth: 0,
+                                },
+                              })),
+                              label: { show: false },
+                              tooltip: { show: false },
+                              silent: true,
+                              animation: false,
+                              emphasis: { disabled: true },
+                            })),
+                            // Main glowing interactive pie
+                            {
+                              type: "pie",
+                              radius: [56, 88],
+                              center: [105, 86],
+                              startAngle: 90,
+                              padAngle: 3,
+                              data: displayAllocations.map((a: Allocation, i: number) => {
+                                const color = ALLOCATION_COLORS[i % ALLOCATION_COLORS.length];
+                                return {
+                                  name: a.ticker,
+                                  value: a.percentage,
+                                  itemStyle: {
+                                    color,
+                                    shadowColor: color,
+                                    shadowBlur: 18,
+                                    borderColor: "rgba(255,255,255,0.18)",
+                                    borderWidth: 1,
+                                  },
+                                  emphasis: {
+                                    itemStyle: {
+                                      shadowBlur: 50,
+                                      shadowOffsetY: -4,
+                                      shadowColor: color,
+                                    },
+                                    scale: true,
+                                    scaleSize: 10,
+                                  },
+                                };
+                              }),
+                              label: { show: false },
+                              animationType: "expansion",
+                              animationDuration: 1400,
+                              animationEasing: "elasticOut",
+                            },
+                          ],
+                          tooltip: {
+                            show: true,
+                            backgroundColor: "rgba(7,12,20,0.95)",
+                            borderColor: "rgba(255,255,255,0.12)",
+                            borderRadius: 12,
+                            textStyle: { color: "white", fontSize: 11 },
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter: (params: any) => {
+                              if (!params.name) return "";
+                              const idx = displayAllocations.findIndex((a: Allocation) => a.ticker === params.name);
+                              if (idx === -1) return "";
+                              const a = displayAllocations[idx];
+                              const color = ALLOCATION_COLORS[idx % ALLOCATION_COLORS.length];
+                              const dollar = ((params.value / 100) * uninvestedBalance).toFixed(0);
+                              const rate = a.annualReturn ?? RETURN_RATES[params.name] ?? 5;
+                              return `<b style="font-size:13px;color:${color}">${params.name}</b><br/>${params.value}% &nbsp;·&nbsp; <b>$${dollar}</b><br/><span style="opacity:0.6;font-size:10px">${a.description ?? ""}</span><br/><span style="color:#34d399;font-size:10px">${rate}%/yr est.</span>`;
+                            },
+                          },
+                        }}
+                        style={{ width: "100%", height: "100%" }}
+                      />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: 6 }}>
                         <p className="text-xl font-bold text-white">${uninvestedBalance.toFixed(0)}</p>
                         <p className={`${labelStyle} mt-0.5`} style={{ color: "var(--text-2)" }}>to invest</p>
                       </div>
