@@ -70,52 +70,55 @@ export default function HomePage() {
     snapTimer.current = setTimeout(() => snapNearest(), 160);
   }, [x, loopCorrect, snapNearest]);
 
-  useEffect(() => {
-    setLinkedIds(getLinkedCardIds());
-
-    // Use cache if available — skip network entirely
-    if (_cachedCards) {
+  const refreshCards = useCallback(async (bust = false) => {
+    if (!bust && _cachedCards) {
       setCards(_cachedCards);
       return;
     }
 
-    fetch("/api/rewards")
-      .then(r => r.json())
-      .then(async (apiCards: any[]) => {
-        const base: CreditCardData[] = apiCards.map(c => ({
-          id: c.id, issuer: c.cardIssuer ?? c.id, name: c.cardName ?? c.id,
-          last4: USER_CARDS[c.id]?.last4 ?? "0000",
-          network: c.cardNetwork ?? "",
-          color: c.id,
-          _cardKey: c.cardKey ?? c.id,
-        } as any));
-        setCards(base);
+    try {
+      const apiCards: any[] = await fetch("/api/rewards").then(r => r.json());
+      if (!Array.isArray(apiCards) || apiCards.length === 0) return;
 
-        const imageResults = await Promise.allSettled(
-          apiCards.map(c =>
-            fetch(`/api/rewards/image?cardKey=${c.cardKey ?? c.id}`)
-              .then(r => r.json())
-              .then((data: any) => {
-                const item = Array.isArray(data) ? data[0] : data;
-                return { id: c.id, imageUrl: item?.cardImageUrl ?? null };
-              })
-              .catch(() => ({ id: c.id, imageUrl: null }))
-          )
-        );
+      const base: CreditCardData[] = apiCards.map(c => ({
+        id: c.id, issuer: c.cardIssuer ?? c.id, name: c.cardName ?? c.id,
+        last4: USER_CARDS[c.id]?.last4 ?? "0000",
+        network: c.cardNetwork ?? "",
+        color: c.id,
+        imageUrl: c.imageUrl ?? null,
+        _cardKey: c.cardKey ?? c.id,
+      } as any));
+      setCards(base);
 
-        const imageMap: Record<string, string> = {};
-        for (const result of imageResults) {
-          if (result.status === "fulfilled" && result.value.imageUrl) {
-            imageMap[result.value.id] = result.value.imageUrl;
-          }
+      const imageResults = await Promise.allSettled(
+        apiCards.map(c =>
+          fetch(`/api/rewards/image?cardKey=${c.cardKey ?? c.id}`)
+            .then(r => r.json())
+            .then((data: any) => {
+              const item = Array.isArray(data) ? data[0] : data;
+              return { id: c.id, imageUrl: item?.cardImageUrl ?? null };
+            })
+            .catch(() => ({ id: c.id, imageUrl: null }))
+        )
+      );
+
+      const imageMap: Record<string, string> = {};
+      for (const result of imageResults) {
+        if (result.status === "fulfilled" && result.value.imageUrl) {
+          imageMap[result.value.id] = result.value.imageUrl;
         }
+      }
 
-        const final = base.map(c => ({ ...c, imageUrl: imageMap[c.id] ?? c.imageUrl }));
-        _cachedCards = final;
-        setCards(final);
-      })
-      .catch(() => {});
+      const final = base.map(c => ({ ...c, imageUrl: imageMap[c.id] ?? (c as any).imageUrl }));
+      _cachedCards = final;
+      setCards(final);
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    setLinkedIds(getLinkedCardIds());
+    refreshCards();
+  }, [refreshCards]);
 
 
   return (
@@ -343,6 +346,8 @@ export default function HomePage() {
                   onComplete={(mappings: LinkedCardMapping[]) => {
                     setLinkedIds(mappings.map(m => m.cardId));
                     setShowPlaid(false);
+                    _cachedCards = null;
+                    refreshCards(true);
                   }}
                 />
               </motion.div>
