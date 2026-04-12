@@ -282,26 +282,15 @@ export default function RewardVestPage() {
   return (
     <div className="min-h-screen" style={{ position: "relative", zIndex: 1 }}>
 
-      {/* ── Header ── */}
-      <div style={{ padding: "32px 28px 0" }}>
-        <p className={labelStyle} style={{ color: "rgba(0,200,5,0.8)", marginBottom: 4 }}>RewardVest</p>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", margin: 0, fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
-          AI Investment Advisor
-        </h1>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", marginTop: 4 }}>
-          SmartSwipe rewards flow directly into your investable balance
-        </p>
-      </div>
-
       <MarketTicker />
 
-      <div style={{ padding: "20px 28px 48px", maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ padding: "16px 28px 48px", maxWidth: 1280, margin: "0 auto" }}>
 
         {/* ── Stat strip ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
           {[
             { label: "This Month", value: `$${thisMonth.toFixed(2)}`, sub: "earned", color: "rgba(0,200,5,0.9)" },
-            { label: "Available to Invest", value: `$${uninvestedBalance.toFixed(2)}`, sub: "uninvested", color: "#60a5fa" },
+            { label: "Available", value: `$${uninvestedBalance.toFixed(2)}`, sub: "to invest", color: "#60a5fa" },
             {
               label: "Portfolio Value",
               value: `$${livePortfolioValue.toFixed(2)}`,
@@ -309,118 +298,161 @@ export default function RewardVestPage() {
               hint: marketStatusLabel,
               color: portfolioGain >= 0 ? "rgba(0,200,5,0.9)" : "#f87171",
             },
-            { label: "Projected Annual", value: `$${projectedAnnual.toLocaleString()}`, sub: "at current rate", color: "#a78bfa" },
-            { label: "10-Year Growth", value: `$${tenYearGrowth.toLocaleString()}`, sub: `at ${projectedReturn}% return`, color: "#fbbf24" },
+            { label: "Proj. Annual", value: `$${projectedAnnual.toLocaleString()}`, sub: "at current rate", color: "#a78bfa" },
+            { label: "10-Year", value: `$${tenYearGrowth.toLocaleString()}`, sub: `at ${projectedReturn}% return`, color: "#fbbf24" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.04 * i, type: "spring", stiffness: 380, damping: 28 }}
-              style={{ ...glass, padding: "16px 18px" }}
+              style={{ ...glass, padding: "14px 16px" }}
             >
-              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.35)", marginBottom: 8 }}>{stat.label}</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: stat.color, fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.3)", marginBottom: 6, fontSize: 9 }}>{stat.label}</p>
+              <p style={{ fontSize: 18, fontWeight: 800, color: stat.color, fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1 }}>
                 {stat.value}
               </p>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{stat.sub}</p>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{stat.sub}</p>
               {"hint" in stat && stat.hint && (
-                <p style={{ fontSize: 10, color: marketStatusColor, fontWeight: 700, marginTop: 6 }}>{stat.hint}</p>
+                <p style={{ fontSize: 9, color: marketStatusColor, fontWeight: 700, marginTop: 5 }}>{stat.hint}</p>
               )}
             </motion.div>
           ))}
         </div>
 
-        {/* ── Main grid ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 340px", gap: 16, alignItems: "start" }}>
+        {/* ── Main grid: charts left, sidebar right ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 16, alignItems: "start" }}>
 
-          {/* Left — Liquidity chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 }}
-            style={{ ...glassStrong, overflow: "hidden" }}
-          >
-            <LiquidityDominanceChart marketRegime={aiAdvice?.marketRegime ?? null} />
-          </motion.div>
+          {/* Left — charts stacked */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              style={{ ...glassStrong, overflow: "hidden" }}
+            >
+              <LiquidityDominanceChart marketRegime={aiAdvice?.marketRegime ?? null} />
+            </motion.div>
 
-          {/* Centre — Portfolio landscape */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.13 }}
-            style={{ ...glassStrong, overflow: "hidden" }}
-          >
-            <PortfolioLandscapeChart
-              allocations={displayAllocations}
-              marketData={marketData}
-              investableAmount={uninvestedBalance}
-              marketStatusLabel={marketLoading ? "Loading..." : marketStatusLabel}
-            />
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              style={{ ...glassStrong, overflow: "hidden" }}
+            >
+              <PortfolioLandscapeChart
+                allocations={displayAllocations}
+                marketData={marketData}
+                investableAmount={uninvestedBalance}
+                marketStatusLabel={marketLoading ? "Loading..." : marketStatusLabel}
+              />
+            </motion.div>
+          </div>
 
           {/* Right sidebar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-            {/* Portfolio / donut */}
+            {/* Portfolio donut card */}
             <AnimatePresence mode="wait">
               {showPortfolio ? (
                 <motion.div
                   key="portfolio"
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  style={{ ...glass, padding: "20px 20px 16px" }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  style={{ ...glassStrong, padding: "22px 22px 18px", position: "relative", overflow: "hidden" }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
-                      {aiAdvice ? "AI Portfolio" : "Suggested Portfolio"}
-                    </p>
+                  {/* Ambient glow behind donut */}
+                  <div style={{ position: "absolute", top: 60, left: "50%", transform: "translateX(-50%)", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,200,5,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 3, fontFamily: "var(--font-display)" }}>
+                        Portfolio Split
+                      </p>
+                      <p style={{ fontSize: 18, fontWeight: 800, color: "#fff", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+                        ${uninvestedBalance.toFixed(2)}
+                      </p>
+                    </div>
                     {aiAdvice && (
-                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(0,200,5,0.8)", background: "rgba(0,200,5,0.1)", border: "1px solid rgba(0,200,5,0.2)", borderRadius: 20, padding: "2px 8px" }}>
-                        AI
+                      <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(0,200,5,0.9)", background: "rgba(0,200,5,0.1)", border: "1px solid rgba(0,200,5,0.22)", borderRadius: 20, padding: "3px 10px" }}>
+                        AI Generated
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 14 }}>
-                    Investing ${uninvestedBalance.toFixed(2)} of rewards
-                  </p>
 
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+                  {/* Donut with center label */}
+                  <div style={{ position: "relative", width: "100%", height: 220 }}>
                     <ReactECharts
                       option={{
                         backgroundColor: "transparent",
-                        tooltip: { trigger: "item" },
+                        tooltip: {
+                          trigger: "item",
+                          backgroundColor: "rgba(10,10,10,0.92)",
+                          borderColor: "rgba(255,255,255,0.1)",
+                          textStyle: { color: "#fff", fontSize: 12 },
+                          formatter: (p: { name: string; value: number; percent: number }) =>
+                            `<b>${p.name}</b><br/>$${((p.value / 100) * uninvestedBalance).toFixed(2)} &nbsp;<span style="color:rgba(255,255,255,0.5)">${p.percent}%</span>`,
+                        },
                         series: [{
                           type: "pie",
-                          radius: ["48%", "72%"],
+                          radius: ["52%", "78%"],
+                          center: ["50%", "50%"],
                           label: { show: false },
+                          emphasis: {
+                            scale: true,
+                            scaleSize: 6,
+                            itemStyle: { shadowBlur: 20, shadowColor: "rgba(0,0,0,0.5)" },
+                          },
                           data: displayAllocations.map((a, i) => ({
                             value: a.percentage,
                             name: a.ticker,
-                            itemStyle: { color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] },
+                            itemStyle: {
+                              color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length],
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: "rgba(0,0,0,0)",
+                            },
                           })),
                         }],
                       }}
-                      className="chart-panel-sm"
                       style={{ width: "100%", height: "100%" }}
                       onChartReady={(chart) => { setTimeout(() => chart.resize(), 0); }}
                     />
+                    {/* Center overlay */}
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                      <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 2 }}>Investable</p>
+                      <p style={{ fontSize: 20, fontWeight: 800, color: "#fff", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+                        ${uninvestedBalance.toFixed(0)}
+                      </p>
+                      <p style={{ fontSize: 10, color: "rgba(0,200,5,0.7)", fontWeight: 600, marginTop: 1 }}>
+                        {projectedReturn}% est. return
+                      </p>
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                  {/* Allocation rows with progress bars */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16, marginBottom: 18 }}>
                     {displayAllocations.map((a, i) => (
-                      <div key={a.ticker} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length], flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div key={a.ticker}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <div style={{ width: 7, height: 7, borderRadius: 2, background: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length], flexShrink: 0 }} />
                             <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{a.ticker}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>${((a.percentage / 100) * uninvestedBalance).toFixed(0)}</span>
+                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.description}</span>
                           </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1 }}>
-                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.description}</span>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }}>{a.percentage}%</span>
-                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }}>
+                            {a.percentage}%
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${a.percentage}%` }}
+                            transition={{ delay: 0.3 + i * 0.05, duration: 0.5, ease: "easeOut" }}
+                            style={{ height: "100%", borderRadius: 2, background: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }}
+                          />
                         </div>
                       </div>
                     ))}
@@ -429,14 +461,14 @@ export default function RewardVestPage() {
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating}
-                    style={{ width: "100%", padding: "11px 0", borderRadius: 12, background: "rgba(0,200,5,0.9)", color: "#000", fontSize: 13, fontWeight: 800, border: "none", cursor: isGenerating ? "not-allowed" : "pointer", opacity: isGenerating ? 0.5 : 1, marginBottom: 8 }}
+                    style={{ width: "100%", padding: "12px 0", borderRadius: 12, background: isGenerating ? "rgba(0,200,5,0.35)" : "rgba(0,200,5,0.9)", color: "#000", fontSize: 13, fontWeight: 800, border: "none", cursor: isGenerating ? "not-allowed" : "pointer", marginBottom: 8, transition: "background 0.2s" }}
                   >
-                    {isGenerating ? "Generating..." : "Generate AI Split"}
+                    {isGenerating ? "Analyzing signals..." : "Generate AI Split"}
                   </button>
                   <button
                     onClick={handleInvest}
                     disabled={isInvesting || uninvestedBalance <= 0}
-                    style={{ width: "100%", padding: "11px 0", borderRadius: 12, background: "rgba(96,165,250,0.08)", color: "#60a5fa", fontSize: 13, fontWeight: 700, border: "1px solid rgba(96,165,250,0.25)", cursor: (isInvesting || uninvestedBalance <= 0) ? "not-allowed" : "pointer", opacity: (isInvesting || uninvestedBalance <= 0) ? 0.5 : 1 }}
+                    style={{ width: "100%", padding: "12px 0", borderRadius: 12, background: "rgba(96,165,250,0.07)", color: "#60a5fa", fontSize: 13, fontWeight: 700, border: "1px solid rgba(96,165,250,0.22)", cursor: (isInvesting || uninvestedBalance <= 0) ? "not-allowed" : "pointer", opacity: (isInvesting || uninvestedBalance <= 0) ? 0.45 : 1 }}
                   >
                     {isInvesting ? "Logging..." : investmentConfirmed ? "Investment Logged ✓" : "I Invested This"}
                   </button>
@@ -444,11 +476,18 @@ export default function RewardVestPage() {
               ) : (
                 <motion.div
                   key="empty"
-                  style={{ ...glass, height: 240, display: "flex", alignItems: "center", justifyContent: "center", borderStyle: "dashed" }}
+                  style={{ ...glass, height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, border: "1px dashed rgba(255,255,255,0.1)" }}
                 >
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
-                    {isGenerating ? "Analyzing market signals..." : "Generate a portfolio split"}
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.28)" }}>
+                    {isGenerating ? "Analyzing market signals..." : "No portfolio split yet"}
                   </p>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    style={{ padding: "9px 20px", borderRadius: 10, background: "rgba(0,200,5,0.12)", color: "rgba(0,200,5,0.85)", fontSize: 12, fontWeight: 700, border: "1px solid rgba(0,200,5,0.22)", cursor: "pointer" }}
+                  >
+                    Generate AI Split
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -457,17 +496,17 @@ export default function RewardVestPage() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
+              transition={{ delay: 0.2 }}
               style={{ ...glass, padding: "18px 20px" }}
             >
-              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.32)", marginBottom: 8 }}>AI Insight</p>
-              <p style={{ fontSize: 12, lineHeight: 1.65, color: "rgba(255,255,255,0.68)" }}>
-                {aiAdvice?.summary ?? "RewardVest uses the exact value you have logged from SmartSwipe, then allocates only the uninvested portion into a suggested micro-portfolio."}
+              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.28)", marginBottom: 10, fontSize: 9 }}>AI Insight</p>
+              <p style={{ fontSize: 12, lineHeight: 1.68, color: "rgba(255,255,255,0.62)" }}>
+                {aiAdvice?.summary ?? "RewardVest takes the exact value logged in SmartSwipe and allocates only the uninvested portion into a suggested micro-portfolio."}
               </p>
               {aiAdvice?.insights?.length ? (
-                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
                   {aiAdvice.insights.slice(0, 3).map((insight) => (
-                    <p key={insight} style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", lineHeight: 1.5 }}>{insight}</p>
+                    <p key={insight} style={{ fontSize: 11, color: "rgba(255,255,255,0.36)", lineHeight: 1.5 }}>· {insight}</p>
                   ))}
                 </div>
               ) : null}
@@ -479,21 +518,21 @@ export default function RewardVestPage() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.22 }}
+              transition={{ delay: 0.24 }}
               style={{ ...glass, padding: "18px 20px" }}
             >
-              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.32)", marginBottom: 12 }}>Earnings by Card</p>
+              <p className={labelStyle} style={{ color: "rgba(255,255,255,0.28)", marginBottom: 12, fontSize: 9 }}>Earnings by Card</p>
               {rewardBreakdown.length === 0 ? (
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>No logged rewards yet. Log a swipe in SmartSwipe first.</p>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.28)" }}>Log a swipe in SmartSwipe to see earnings here.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {rewardBreakdown.map((card) => (
                     <div key={card.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{card.label}</p>
-                        <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{card.points.toLocaleString()} pts</p>
+                        <p style={{ fontSize: 10, color: "rgba(255,255,255,0.32)", marginTop: 2 }}>{card.points.toLocaleString()} pts</p>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(0,200,5,0.9)", whiteSpace: "nowrap" }}>${card.earned.toFixed(2)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: "rgba(0,200,5,0.9)", whiteSpace: "nowrap", fontFamily: "var(--font-display)" }}>${card.earned.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
