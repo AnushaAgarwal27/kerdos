@@ -1479,24 +1479,109 @@ export default function RewardVestPage() {
                   </div>
                 </div>
 
-                {/* 5. Absorption */}
+                {/* 5. Absorption — ECharts color-coded glow bars */}
                 <div className="p-5" style={cardStyle}>
                   <p className={`${labelStyle} mb-1`} style={{ color: "var(--text-2)" }}>Absorption Signal</p>
                   <p className="text-sm font-semibold text-white mb-4">+1 bullish · −1 bearish absorption</p>
                   <div className="chart-stage chart-stage-orange">
                     <div className="chart-tilt" style={{ height: 180 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={nqBars} margin={{ top: 14, right: 12, bottom: 8, left: 28 }}>
-                          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 8" />
-                          <XAxis dataKey="t" tick={{ fill: "var(--text-2)", fontSize: 9 }} axisLine={false} tickLine={false} interval={29} />
-                          <YAxis tick={{ fill: "var(--text-2)", fontSize: 9 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ background: "rgba(24,12,5,0.92)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 14, fontSize: 11 }} />
-                          <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" />
-                          <ReferenceLine y={0.3} stroke="#00c80533" strokeDasharray="3 3" />
-                          <ReferenceLine y={-0.3} stroke="#ff3b3033" strokeDasharray="3 3" />
-                          <Bar dataKey="absorption" fill="#fbbf24" opacity={0.8} radius={[6, 6, 0, 0]} />
-                        </ComposedChart>
-                      </ResponsiveContainer>
+                      <ReactECharts
+                        option={{
+                          backgroundColor: "transparent",
+                          grid: { left: "3%", right: "4%", bottom: "8%", top: "10%", containLabel: true },
+                          xAxis: {
+                            type: "category",
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            data: nqBars.map((d: any) => d.t),
+                            axisLine: { show: false },
+                            axisTick: { show: false },
+                            axisLabel: { color: "var(--text-2)", fontSize: 9, interval: 29 },
+                          },
+                          yAxis: {
+                            type: "value",
+                            axisLine: { show: false },
+                            axisTick: { show: false },
+                            axisLabel: { color: "var(--text-2)", fontSize: 9 },
+                            splitLine: { lineStyle: { color: "rgba(255,255,255,0.05)", type: "dashed" } },
+                          },
+                          tooltip: {
+                            trigger: "axis",
+                            backgroundColor: "rgba(24,12,5,0.95)",
+                            borderColor: "rgba(249,115,22,0.3)",
+                            borderRadius: 14,
+                            textStyle: { color: "white", fontSize: 11 },
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter: (params: any) => {
+                              const val = params[0]?.value;
+                              if (val === undefined) return "";
+                              const label =
+                                val > 0.3 ? "🟢 Strong Bullish" :
+                                val > 0   ? "📈 Bullish" :
+                                val < -0.3 ? "🔴 Strong Bearish" : "📉 Bearish";
+                              return `${params[0].name}<br/>Absorption: <b>${Number(val).toFixed(3)}</b><br/>${label}`;
+                            },
+                          },
+                          series: [
+                            {
+                              name: "Absorption",
+                              type: "bar",
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              data: nqBars.map((d: any) => ({
+                                value: d.absorption,
+                                itemStyle: d.absorption >= 0 ? {
+                                  color: {
+                                    type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+                                    colorStops: [
+                                      { offset: 0, color: "#22d3ee" },
+                                      { offset: 1, color: "rgba(34,211,238,0.25)" },
+                                    ],
+                                  },
+                                  shadowColor: "#22d3ee",
+                                  shadowBlur: Math.abs(d.absorption) > 0.3 ? 16 : 5,
+                                  borderRadius: [5, 5, 0, 0],
+                                } : {
+                                  color: {
+                                    type: "linear", x: 0, y: 1, x2: 0, y2: 0,
+                                    colorStops: [
+                                      { offset: 0, color: "#f87171" },
+                                      { offset: 1, color: "rgba(248,113,113,0.25)" },
+                                    ],
+                                  },
+                                  shadowColor: "#f87171",
+                                  shadowBlur: Math.abs(d.absorption) > 0.3 ? 16 : 5,
+                                  borderRadius: [0, 0, 5, 5],
+                                },
+                              })),
+                              markLine: {
+                                silent: true,
+                                symbol: "none",
+                                data: [
+                                  {
+                                    yAxis: 0,
+                                    lineStyle: { color: "rgba(255,255,255,0.2)", width: 1 },
+                                    label: { show: false },
+                                  },
+                                  {
+                                    yAxis: 0.3,
+                                    lineStyle: { color: "rgba(34,211,238,0.3)", type: "dashed", width: 1 },
+                                    label: { show: true, formatter: "0.3", color: "rgba(34,211,238,0.7)", fontSize: 9, position: "end" },
+                                  },
+                                  {
+                                    yAxis: -0.3,
+                                    lineStyle: { color: "rgba(248,113,113,0.3)", type: "dashed", width: 1 },
+                                    label: { show: true, formatter: "-0.3", color: "rgba(248,113,113,0.7)", fontSize: 9, position: "end" },
+                                  },
+                                ],
+                              },
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              animationDelay: (idx: any) => idx * 15,
+                              animationDuration: 900,
+                              animationEasing: "elasticOut",
+                            },
+                          ],
+                        }}
+                        style={{ height: "100%", width: "100%" }}
+                      />
                     </div>
                   </div>
                 </div>
