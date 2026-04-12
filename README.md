@@ -1,5 +1,29 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Codex In Terminal
+
+Codex CLI is already available in this environment and is currently logged in.
+
+From this project root, you can start Codex in the terminal with:
+
+```bash
+npm run codex
+```
+
+Helpful commands:
+
+```bash
+npm run codex:resume
+npm run codex:review
+codex login status
+```
+
+If you ever need to re-authenticate manually:
+
+```bash
+codex login
+```
+
 ## Getting Started
 
 First, run the development server:

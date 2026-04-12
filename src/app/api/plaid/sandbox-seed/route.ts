@@ -1,42 +1,33 @@
 import { NextResponse } from "next/server";
+import { Products } from "plaid";
 import { DEMO_USER_ID } from "@/lib/demoUser";
 import { mergeStoredPlaidUserItem } from "@/lib/server/localStore";
 import { plaidClient } from "@/lib/server/plaid";
 import { resolveCardFromPlaidName } from "@/lib/server/rewards";
 
-type ExchangeTokenPayload = {
-  publicToken?: string;
+type SandboxSeedPayload = {
   userId?: string;
-  selectedAccountIds?: string[];
 };
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ExchangeTokenPayload;
-    if (!body.publicToken) {
-      return NextResponse.json({ error: "publicToken is required" }, { status: 400 });
-    }
-
+    const body = (await request.json().catch(() => ({}))) as SandboxSeedPayload;
     const userId = body.userId?.trim() || DEMO_USER_ID;
-    const exchange = await plaidClient.itemPublicTokenExchange({ public_token: body.publicToken });
+
+    const sandboxToken = await plaidClient.sandboxPublicTokenCreate({
+      institution_id: "ins_109508",
+      initial_products: [Products.Transactions],
+    });
+
+    const exchange = await plaidClient.itemPublicTokenExchange({
+      public_token: sandboxToken.data.public_token,
+    });
+
     const accessToken = exchange.data.access_token;
     const itemId = exchange.data.item_id;
     const accounts = await plaidClient.accountsGet({ access_token: accessToken });
-    const selectedAccountIds = new Set((body.selectedAccountIds ?? []).filter(Boolean));
 
-    const creditAccounts = accounts.data.accounts.filter(
-      (account) =>
-        account.type === "credit" &&
-        (selectedAccountIds.size === 0 || selectedAccountIds.has(account.account_id))
-    );
-
-    if (creditAccounts.length === 0) {
-      return NextResponse.json(
-        { error: "No selected credit card account was found in Plaid Link." },
-        { status: 422 }
-      );
-    }
-
+    const creditAccounts = accounts.data.accounts.filter((account) => account.type === "credit");
     const linkedCards = (
       await Promise.all(
         creditAccounts.map(async (account) => {
@@ -44,6 +35,7 @@ export async function POST(request: Request) {
             name: account.name,
             officialName: account.official_name ?? "",
           });
+
           if (!profile) return null;
 
           return {
@@ -60,13 +52,6 @@ export async function POST(request: Request) {
       )
     ).filter((value): value is NonNullable<typeof value> => Boolean(value));
 
-    if (linkedCards.length === 0) {
-      return NextResponse.json(
-        { error: "We could not confidently match that card in rewards data. No cards were added." },
-        { status: 422 }
-      );
-    }
-
     const storedUser = await mergeStoredPlaidUserItem({
       userId,
       itemId,
@@ -76,14 +61,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       userId,
-      itemId,
-      mappings: linkedCards,
+      linkedCards,
       totalLinkedCards: storedUser.linkedCards.length,
       totalLinkedItems: storedUser.items.length,
+      seeded: true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("exchange-token error:", message);
+    console.error("sandbox seed error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
