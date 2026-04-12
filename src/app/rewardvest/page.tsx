@@ -5,6 +5,8 @@ import type { CSSProperties, ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import MarketTicker from "@/components/MarketTicker";
+import LiquidityDominanceChart from "@/components/invest/LiquidityDominanceChart";
+import PortfolioLandscapeChart from "@/components/invest/PortfolioLandscapeChart";
 import { DEMO_USER_ID } from "@/lib/demoUser";
 import {
   getPortfolioGain,
@@ -103,11 +105,6 @@ function buildMonthlyChart(transactions: RewardTransaction[]) {
       value: Number(value.toFixed(2)),
     };
   });
-}
-
-function formatMoneyTick(value: number) {
-  if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-  return `$${Math.round(value)}`;
 }
 
 export default function RewardVestPage() {
@@ -272,12 +269,7 @@ export default function RewardVestPage() {
     .filter((card) => card.earned > 0 || card.points > 0);
 
   return (
-    <motion.div
-      className="min-h-screen"
-      initial={{ opacity: 0, filter: "blur(8px)" }}
-      animate={{ opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-    >
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <div className="px-4 pt-12 pb-3">
         <span className={labelStyle} style={{ color: "var(--green)" }}>RewardVest</span>
         <h1 className="text-2xl font-bold text-white mt-0.5">AI Investment Advisor</h1>
@@ -324,95 +316,17 @@ export default function RewardVestPage() {
 
         <div className="grid lg:grid-cols-3 gap-4 items-start">
           <div className="lg:col-span-2 space-y-4 min-w-0">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-5" style={cardStyle}>
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <p className={labelStyle} style={{ color: "var(--text-2)" }}>Rewards Earned</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">Backend-tracked rewards history from logged SmartSwipe transactions</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold" style={{ color: "var(--green)" }}>${thisMonth.toFixed(2)}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-2)" }}>{rewardSummary.totalPoints.toLocaleString()} points banked</p>
-                </div>
-              </div>
-              <div className="chart-stage chart-stage-green chart-host">
-                <div className="chart-tilt chart-panel">
-                  <ReactECharts
-                    option={{
-                      backgroundColor: "transparent",
-                      grid: { left: "3%", right: "4%", bottom: "10%", top: "10%", containLabel: true },
-                      xAxis: {
-                        type: "category",
-                        data: chartData.map((point) => point.month),
-                        axisLine: { show: false },
-                        axisTick: { show: false },
-                        axisLabel: { color: "var(--text-2)", fontSize: 10 },
-                      },
-                      yAxis: {
-                        type: "value",
-                        axisLine: { show: false },
-                        axisTick: { show: false },
-                        axisLabel: { color: "var(--text-2)", fontSize: 10, formatter: formatMoneyTick },
-                        splitLine: { lineStyle: { color: "rgba(255,255,255,0.07)", type: "dashed" } },
-                      },
-                      tooltip: {
-                        backgroundColor: "rgba(7,12,10,0.92)",
-                        borderColor: "rgba(52,211,153,0.28)",
-                        borderRadius: 14,
-                        textStyle: { color: "white", fontSize: 12 },
-                        formatter: (params: { value: number }) => `Rewards: $${Number(params.value).toFixed(2)}`,
-                      },
-                      series: [{
-                        type: "line",
-                        data: chartData.map((point) => point.value),
-                        smooth: true,
-                        symbol: "none",
-                        lineStyle: { color: "#5efc8d", width: 3 },
-                        areaStyle: {
-                          color: {
-                            type: "linear",
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [
-                              { offset: 0, color: "rgba(52,211,153,0.4)" },
-                              { offset: 1, color: "rgba(0,200,5,0.02)" },
-                            ],
-                          },
-                        },
-                      }],
-                    }}
-                    style={{ height: "100%", width: "100%" }}
-                  />
-                </div>
-              </div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <LiquidityDominanceChart marketRegime={aiAdvice?.marketRegime ?? null} />
             </motion.div>
 
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-5" style={cardStyle}>
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <p className={labelStyle} style={{ color: "var(--text-2)" }}>Market Pulse</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">Live tickers feeding the RewardVest allocation view</p>
-                </div>
-                <p className="text-xs font-semibold" style={{ color: marketStatusColor }}>
-                  {marketLoading ? "Loading..." : marketStatusLabel}
-                </p>
-              </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {marketData.map((stock) => (
-                  <div key={stock.ticker} className="p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-white">{stock.ticker}</span>
-                      <span className="text-xs font-semibold" style={{ color: stock.changePct >= 0 ? "var(--green)" : "var(--red)" }}>
-                        {stock.changePct >= 0 ? "+" : ""}{stock.changePct.toFixed(2)}%
-                      </span>
-                    </div>
-                    <p className="text-lg font-bold text-white">${stock.price.toFixed(2)}</p>
-                    <p className="text-[10px] truncate" style={{ color: "var(--text-2)" }}>{stock.name}</p>
-                  </div>
-                ))}
-              </div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <PortfolioLandscapeChart
+                allocations={displayAllocations}
+                marketData={marketData}
+                investableAmount={uninvestedBalance}
+                marketStatusLabel={marketLoading ? "Loading..." : marketStatusLabel}
+              />
             </motion.div>
           </div>
 
@@ -523,7 +437,7 @@ export default function RewardVestPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

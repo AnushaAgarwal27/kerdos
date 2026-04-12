@@ -1,0 +1,85 @@
+
+> kerdos@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.23.26.92:3000
+- Environments: .env.local
+✓ Ready in 226ms
+
+ GET / 200 in 1430ms (next.js: 1331ms, application-code: 99ms)
+ GET /wealthsplit 200 in 1458ms (next.js: 1336ms, application-code: 122ms)
+ GET /rewardvest 200 in 1118ms (next.js: 1039ms, application-code: 78ms)
+ GET / 200 in 70ms (next.js: 9ms, application-code: 61ms)
+ GET /api/market-indices 200 in 658ms (next.js: 290ms, application-code: 368ms)
+ GET /rewardvest 200 in 29ms (next.js: 6ms, application-code: 23ms)
+ GET /api/market-indices 200 in 6ms (next.js: 2ms, application-code: 4ms)
+ GET /api/market-indices 200 in 9ms (next.js: 1593µs, application-code: 7ms)
+ GET /api/nq-analysis?date=index 200 in 71ms (next.js: 69ms, application-code: 2ms)
+ GET /api/nq-analysis?date=index 200 in 3ms (next.js: 1154µs, application-code: 2ms)
+ GET /api/nq-analysis?date=2026-02-25 200 in 8ms (next.js: 4ms, application-code: 4ms)
+ GET /api/nq-analysis?date=2026-02-25 200 in 3ms (next.js: 685µs, application-code: 3ms)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET /api/rewards 200 in 7.7s (next.js: 311ms, application-code: 7.4s)
+ GET /api/market 200 in 8.0s (next.js: 64ms, application-code: 8.0s)
+ GET /api/market 200 in 8.0s (next.js: 4ms, application-code: 8.0s)
+ GET / 200 in 53ms (next.js: 17ms, application-code: 36ms)
+ GET /api/market-indices 200 in 20ms (next.js: 5ms, application-code: 15ms)
+ GET /rewardvest 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/market-indices 200 in 4ms (next.js: 2ms, application-code: 1679µs)
+ GET /api/nq-analysis?date=index 200 in 3ms (next.js: 1429µs, application-code: 1578µs)
+ GET /api/market-indices 200 in 5ms (next.js: 4ms, application-code: 1546µs)
+ GET /api/nq-analysis?date=index 200 in 4ms (next.js: 1682µs, application-code: 3ms)
+ GET /api/nq-analysis?date=2026-02-25 200 in 10ms (next.js: 4ms, application-code: 6ms)
+ GET /api/nq-analysis?date=2026-02-25 200 in 6ms (next.js: 1482µs, application-code: 4ms)
+ GET /api/rewards 200 in 2.0s (next.js: 23ms, application-code: 2.0s)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET /api/market 200 in 8.0s (next.js: 5ms, application-code: 8.0s)
+ GET /api/market 200 in 7.9s (next.js: 3ms, application-code: 7.9s)

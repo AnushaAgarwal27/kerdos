@@ -5,7 +5,6 @@ import OpenAI from "openai";
 interface AdviceRequest {
   totalRewards: number;
   monthlyEarnings: number[];
-  investmentAmount?: number;
   riskTolerance?: "conservative" | "moderate" | "aggressive";
 }
 
@@ -68,7 +67,6 @@ function isValidAdviceRequest(body: unknown): body is AdviceRequest {
     typeof candidate.totalRewards === "number" &&
     Array.isArray(candidate.monthlyEarnings) &&
     candidate.monthlyEarnings.every((value) => typeof value === "number") &&
-    (candidate.investmentAmount === undefined || typeof candidate.investmentAmount === "number") &&
     (candidate.riskTolerance === undefined ||
       candidate.riskTolerance === "conservative" ||
       candidate.riskTolerance === "moderate" ||
@@ -98,7 +96,7 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
     return { regime: "mixed", description: "No Bloomberg data found", volatility: "medium", bquantScore: 5.0 };
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Multi-day signals (last 10 trading days) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── Multi-day signals (last 10 trading days) ──────────────────────
   const window = allDays.slice(-10);
   const firstClose = window[0].close;
   const lastClose = window[window.length - 1].close;
@@ -116,7 +114,7 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
   // VPIN: elevated VPIN = informed/toxic flow = risk signal
   const avgVpin = window.reduce((s, d) => s + (d.avg_vpin ?? 0), 0) / window.length;
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Intraday signals (latest available day) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── Intraday signals (latest available day) ───────────────────────
   const latestDate = allDays[allDays.length - 1].date;
   const latestFilePath = path.join(analysisDir, `${latestDate}.json`);
 
@@ -149,17 +147,17 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
     }
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ BQuant composite score (0ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“10 scale) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── BQuant composite score (0–10 scale) ───────────────────────────
   let score = 5.0;
 
-  // 1. Price momentum over window (Ãƒâ€šÃ‚Â±2 pts)
+  // 1. Price momentum over window (±2 pts)
   score += Math.max(-2, Math.min(2, momentum * 0.35));
 
-  // 2. Session delta trend ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â net buy/sell pressure (Ãƒâ€šÃ‚Â±1.5 pts)
-  //    Normalize: Ãƒâ€šÃ‚Â±5000 contracts maps to Ãƒâ€šÃ‚Â±1.5
+  // 2. Session delta trend — net buy/sell pressure (±1.5 pts)
+  //    Normalize: ±5000 contracts maps to ±1.5
   score += Math.max(-1.5, Math.min(1.5, (avgDelta / 5000) * 1.5));
 
-  // 3. Institutional absorption (Ãƒâ€šÃ‚Â±1 pt)
+  // 3. Institutional absorption (±1 pt)
   //    avg_absorption is roughly -1 to +1
   score += Math.max(-1, Math.min(1, avgAbsorption * 3));
 
@@ -167,29 +165,29 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
   //    vpin > 0.5 = high toxic flow = risk off signal
   score -= Math.max(0, Math.min(1.5, (avgVpin - 0.3) * 3));
 
-  // 5. Intraday RSI (Ãƒâ€šÃ‚Â±0.5 pts)
+  // 5. Intraday RSI (±0.5 pts)
   if (endRsi > 60) score += 0.5;
   else if (endRsi < 40) score -= 0.5;
 
-  // 6. Intraday buy pressure (Ãƒâ€šÃ‚Â±0.5 pts)
+  // 6. Intraday buy pressure (±0.5 pts)
   score += Math.max(-0.5, Math.min(0.5, (endBuyPressure - 0.5) * 2));
 
-  // 7. Intraday delta confirmation (Ãƒâ€šÃ‚Â±0.3 pts)
+  // 7. Intraday delta confirmation (±0.3 pts)
   score += Math.max(-0.3, Math.min(0.3, (endDelta / 3000) * 0.3));
 
-  // 8. Intraday absorption (Ãƒâ€šÃ‚Â±0.2 pts)
+  // 8. Intraday absorption (±0.2 pts)
   score += Math.max(-0.2, Math.min(0.2, endAbsorption * 0.5));
 
-  // 9. EMA trend confirmation (Ãƒâ€šÃ‚Â±0.3 pts)
+  // 9. EMA trend confirmation (±0.3 pts)
   score += closeAboveEma20 ? 0.3 : -0.3;
 
-  // 10. Unusual volume bonus/penalty (Ãƒâ€šÃ‚Â±0.2 pts)
+  // 10. Unusual volume bonus/penalty (±0.2 pts)
   if (endVolZscore > 2) score += 0.2;
 
   score = Math.max(0, Math.min(10, score));
   const roundedScore = Math.round(score * 100) / 100;
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Regime classification ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── Regime classification ─────────────────────────────────────────
   const regime: "bullish" | "defensive" | "mixed" =
     roundedScore >= 6.5 ? "bullish" : roundedScore <= 4 ? "defensive" : "mixed";
 
@@ -198,7 +196,7 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
     : avgVpin > 0.35 || Math.abs(momentum) > 1 ? "medium"
     : "low";
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Human-readable BQuant prediction ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── Human-readable BQuant prediction ─────────────────────────────
   const deltaDir = avgDelta > 0 ? "net buying" : "net selling";
   const absorptionLabel =
     avgAbsorption > 0.15 ? "bullish absorption (institutional accumulation)"
@@ -207,11 +205,11 @@ async function analyzeBloombergData(): Promise<MarketRegime> {
 
   let prediction: string;
   if (regime === "bullish") {
-    prediction = `Bloomberg BQuantÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ (${window.length}-day NQ analysis through ${latestDate}): Bullish ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${upDays}/${window.length} up-days, ${momentum.toFixed(2)}% net move, ${deltaDir} on aggregate delta. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)}. BQuant Score: ${roundedScore}/10. Institutional flow supports growth overweight.`;
+    prediction = `Bloomberg BQuant™ (${window.length}-day NQ analysis through ${latestDate}): Bullish — ${upDays}/${window.length} up-days, ${momentum.toFixed(2)}% net move, ${deltaDir} on aggregate delta. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)}. BQuant Score: ${roundedScore}/10. Institutional flow supports growth overweight.`;
   } else if (regime === "defensive") {
-    prediction = `Bloomberg BQuantÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ (${window.length}-day NQ analysis through ${latestDate}): Defensive ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â only ${upDays}/${window.length} up-days, ${momentum.toFixed(2)}% net move, ${deltaDir}. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)} (elevated risk). BQuant Score: ${roundedScore}/10. Risk-off signals suggest reducing growth exposure.`;
+    prediction = `Bloomberg BQuant™ (${window.length}-day NQ analysis through ${latestDate}): Defensive — only ${upDays}/${window.length} up-days, ${momentum.toFixed(2)}% net move, ${deltaDir}. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)} (elevated risk). BQuant Score: ${roundedScore}/10. Risk-off signals suggest reducing growth exposure.`;
   } else {
-    prediction = `Bloomberg BQuantÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ (${window.length}-day NQ analysis through ${latestDate}): Mixed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${upDays} up / ${downDays} down days, ${momentum.toFixed(2)}% net move, ${deltaDir}. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)}. BQuant Score: ${roundedScore}/10. Range-bound conditions favor income-generating positions.`;
+    prediction = `Bloomberg BQuant™ (${window.length}-day NQ analysis through ${latestDate}): Mixed — ${upDays} up / ${downDays} down days, ${momentum.toFixed(2)}% net move, ${deltaDir}. ${absorptionLabel}. RSI ${endRsi.toFixed(0)} | VPIN ${avgVpin.toFixed(2)}. BQuant Score: ${roundedScore}/10. Range-bound conditions favor income-generating positions.`;
   }
 
   return {
@@ -248,7 +246,7 @@ function generatePortfolioRules(
   let threshold = THRESHOLD_CASH_ONLY;
   let allocations: PortfolioAllocation[] = [];
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RULE 1: Amount-based base allocation ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── RULE 1: Amount-based base allocation ──────────────────────────
   if (rewardAmount < THRESHOLD_CASH_ONLY) {
     allocations = [
       { ticker: "CASH", percentage: 100, rationale: "Reward amount too small to deploy efficiently", description: "High-yield savings or money market fund", annualReturn: r("CASH") },
@@ -277,7 +275,7 @@ function generatePortfolioRules(
     ];
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RULE 2: Market regime adjustment ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── RULE 2: Market regime adjustment ─────────────────────────────
   if (marketRegime.regime === "defensive") {
     allocations = allocations.map((a) => {
       if (a.ticker === "QQQ") return { ...a, percentage: Math.max(a.percentage - 10, 0) };
@@ -293,7 +291,7 @@ function generatePortfolioRules(
     });
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RULE 3: Risk tolerance adjustment ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── RULE 3: Risk tolerance adjustment ────────────────────────────
   if (riskTolerance === "conservative") {
     allocations = allocations.map((a) => {
       if (a.ticker === "QQQ") return { ...a, percentage: Math.round(a.percentage * 0.7) };
@@ -309,7 +307,7 @@ function generatePortfolioRules(
     });
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RULE 4: Bloomberg BQuant tilt ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── RULE 4: Bloomberg BQuant tilt ────────────────────────────────
   const score = marketRegime.bquantScore ?? 5;
   if (rewardAmount >= 100) {
     if (score >= 7.5) {
@@ -326,7 +324,7 @@ function generatePortfolioRules(
       // Strong defensive: add gold as macro hedge
       allocations.push({
         ticker: "GLD", percentage: 20,
-        rationale: "BQuant flags elevated VPIN and negative delta ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â precious metals macro hedge.",
+        rationale: "BQuant flags elevated VPIN and negative delta — precious metals macro hedge.",
         description: "SPDR Gold Trust", annualReturn: r("GLD"),
       });
       allocations = allocations.map((a) =>
@@ -336,7 +334,7 @@ function generatePortfolioRules(
       // Mixed: JEPI for covered-call income in range-bound market
       allocations.push({
         ticker: "JEPI", percentage: 20,
-        rationale: "BQuant range-bound signal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â covered-call strategy generates yield while waiting.",
+        rationale: "BQuant range-bound signal — covered-call strategy generates yield while waiting.",
         description: "JPMorgan Equity Premium Income", annualReturn: r("JEPI"),
       });
       allocations = allocations.map((a) =>
@@ -345,7 +343,7 @@ function generatePortfolioRules(
     }
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Normalize to exactly 100% ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ── Normalize to exactly 100% ─────────────────────────────────────
   const total = allocations.reduce((s, a) => s + a.percentage, 0);
   allocations = allocations.map((a) => ({
     ...a,
@@ -359,7 +357,7 @@ function generatePortfolioRules(
   return {
     allocations,
     threshold,
-    recommendation: `Bloomberg BQuant score ${score.toFixed(1)}/10 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${marketRegime.regime} regime with ${marketRegime.volatility} volatility.`,
+    recommendation: `Bloomberg BQuant score ${score.toFixed(1)}/10 — ${marketRegime.regime} regime with ${marketRegime.volatility} volatility.`,
   };
 }
 
@@ -369,26 +367,22 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { monthlyEarnings, investmentAmount, riskTolerance = "moderate" } = body;
+  const { monthlyEarnings, riskTolerance = "moderate" } = body;
   const latestMonth = monthlyEarnings[monthlyEarnings.length - 1] ?? 0;
-  const amountToInvest =
-    typeof investmentAmount === "number" && Number.isFinite(investmentAmount)
-      ? Math.max(0, investmentAmount)
-      : latestMonth;
   const trend =
     monthlyEarnings.length >= 2
       ? monthlyEarnings[monthlyEarnings.length - 1] - monthlyEarnings[monthlyEarnings.length - 2]
       : 0;
 
   try {
-    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STEP 1: Bloomberg signal engine (no external API) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    // ── STEP 1: Bloomberg signal engine (no external API) ────────────
     const marketRegime = await analyzeBloombergData();
 
-    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STEP 2: Deterministic portfolio rules ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    // ── STEP 2: Deterministic portfolio rules ─────────────────────────
     const { allocations: ruleAllocations, threshold, recommendation } =
-      generatePortfolioRules(amountToInvest, riskTolerance, marketRegime);
+      generatePortfolioRules(latestMonth, riskTolerance, marketRegime);
 
-    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STEP 3: LLM natural language summary (optional) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    // ── STEP 3: LLM natural language summary (optional) ───────────────
     let summary = recommendation;
     const featherlessKey = process.env.FEATHERLESS_API_KEY;
     if (featherlessKey && featherlessKey !== "your_key_here") {
@@ -412,7 +406,7 @@ export async function POST(request: Request) {
             },
             {
               role: "user",
-              content: `Reward amount this month: $${latestMonth}\nAmount available to invest right now: $${amountToInvest}\nRisk tolerance: ${riskTolerance}\nMarket regime: ${marketRegime.regime} (${marketRegime.description})\nBloomberg BQuant: ${marketRegime.bloombergPrediction}\nAllocation: ${allocationSummary}\n\nExplain why this portfolio makes sense right now.`, 
+              content: `Reward amount this month: $${latestMonth}\nRisk tolerance: ${riskTolerance}\nMarket regime: ${marketRegime.regime} (${marketRegime.description})\nBloomberg BQuant: ${marketRegime.bloombergPrediction}\nAllocation: ${allocationSummary}\n\nExplain why this portfolio makes sense right now.`,
             },
           ],
           temperature: 0.7,
@@ -421,11 +415,11 @@ export async function POST(request: Request) {
 
         summary = response.choices[0]?.message?.content?.trim() ?? recommendation;
       } catch {
-        // LLM failed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â fall back to template summary, portfolio is still valid
+        // LLM failed — fall back to template summary, portfolio is still valid
       }
     }
 
-    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STEP 4: Projected return ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    // ── STEP 4: Projected return ──────────────────────────────────────
     const returnRates: Record<string, number> = {
       VOO: 8.5, QQQ: 12.0, VTI: 8.2, BND: 3.5, CASH: 4.5, ARKK: 15.0, GLD: 7.0, JEPI: 9.0,
     };
@@ -434,22 +428,22 @@ export async function POST(request: Request) {
       0
     );
 
-    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STEP 5: Insights ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    // ── STEP 5: Insights ──────────────────────────────────────────────
     const score = marketRegime.bquantScore ?? 5;
     const insights = [
-      amountToInvest < 25
-        ? `Your current investable balance is $${amountToInvest.toFixed(2)}, which is below the $25 investment threshold - holding in cash keeps it ready until you build more rewards.`
-        : `You have $${amountToInvest.toFixed(2)} available to invest right now, and at your current pace of $${latestMonth.toFixed(2)}/month you'll accumulate about $${(latestMonth * 12).toFixed(2)} annually.`,
+      latestMonth < 25
+        ? `Your $${latestMonth} is below the $25 investment threshold — holding in cash to build capital before deploying.`
+        : `At $${latestMonth}/month, you'll accumulate $${latestMonth * 12} annually — enough to build a meaningful micro-portfolio through dollar-cost averaging.`,
 
       trend > 0
-        ? `Your rewards earnings are trending up - increasing monthly contributions will compound returns significantly over time.`
-        : `Steady monthly rewards are ideal for automated DCA (dollar-cost averaging) - removes emotion from timing.`,
+        ? `Your rewards earnings are trending up — increasing monthly contributions will compound returns significantly over time.`
+        : `Steady monthly rewards are ideal for automated DCA (dollar-cost averaging) — removes emotion from timing.`,
 
       score >= 6.5
-        ? `BQuant score ${score.toFixed(1)}/10: Institutional flow and positive delta confirm bullish bias - tilt toward growth is supported.`
+        ? `BQuant score ${score.toFixed(1)}/10: Institutional flow and positive delta confirm bullish bias — tilt toward growth is supported.`
         : score <= 4
-        ? `BQuant score ${score.toFixed(1)}/10: Elevated VPIN and negative delta signal caution - defensive tilt reduces drawdown risk.`
-        : `BQuant score ${score.toFixed(1)}/10: Mixed NQ signals - balanced allocation hedges both bull and bear scenarios while collecting income.`,
+        ? `BQuant score ${score.toFixed(1)}/10: Elevated VPIN and negative delta signal caution — defensive tilt reduces drawdown risk.`
+        : `BQuant score ${score.toFixed(1)}/10: Mixed NQ signals — balanced allocation hedges both bull and bear scenarios while collecting income.`,
     ];
 
     const advice: AIAdvice = {
