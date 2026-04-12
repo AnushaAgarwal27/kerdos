@@ -23,12 +23,13 @@ interface StockData {
 }
 
 const STOCK_TICKERS: StockData[] = [
-  { ticker: "VOO",  name: "Vanguard S&P 500",  price: 498.32, change:  3.21, changePct:  0.65 },
-  { ticker: "QQQ",  name: "Invesco Nasdaq 100", price: 432.18, change:  5.44, changePct:  1.27 },
-  { ticker: "SPY",  name: "SPDR S&P 500",       price: 521.67, change:  2.89, changePct:  0.56 },
-  { ticker: "VTI",  name: "Vanguard Total Mkt", price: 242.53, change: -0.87, changePct: -0.36 },
-  { ticker: "ARKK", name: "ARK Innovation",     price: 47.83,  change:  1.22, changePct:  2.62 },
-  { ticker: "BND",  name: "Vanguard Bond",      price: 73.14,  change: -0.12, changePct: -0.16 },
+  { ticker: "VOO",  name: "Vanguard S&P 500",   price: 498.32, change:  3.21, changePct:  0.65 },
+  { ticker: "QQQ",  name: "Invesco Nasdaq 100",  price: 432.18, change:  5.44, changePct:  1.27 },
+  { ticker: "SPY",  name: "SPDR S&P 500",        price: 521.67, change:  2.89, changePct:  0.56 },
+  { ticker: "VTI",  name: "Vanguard Total Mkt",  price: 242.53, change: -0.87, changePct: -0.36 },
+  { ticker: "ARKK", name: "ARK Innovation",      price: 47.83,  change:  1.22, changePct:  2.62 },
+  { ticker: "BND",  name: "Vanguard Bond",       price: 73.14,  change: -0.12, changePct: -0.16 },
+  { ticker: "JPM",  name: "JPMorgan Chase",      price: 224.56, change:  1.84, changePct:  0.83 },
 ];
 
 const ALLOCATION_COLORS = ["#00c805", "#60a5fa", "#a78bfa", "#fbbf24", "#f87171"];
@@ -60,7 +61,7 @@ interface AIAdvice {
 
 const RETURN_RATES: Record<string, number> = {
   VOO: 8.5, QQQ: 12.0, VTI: 8.2, BND: 3.5,
-  CASH: 4.5, ARKK: 15.0, GLD: 7.0, JEPI: 9.0,
+  CASH: 4.5, ARKK: 15.0, GLD: 7.0, JEPI: 9.0, JPM: 11.2,
 };
 
 function shadeHex(hex: string, multiplier: number) {
@@ -310,6 +311,7 @@ export default function RewardVestPage() {
       JEPI: [5, 3, 9, 7, 7],
       CASH: [1, 1, 4, 10, 10],
       GLD:  [4, 2, 0, 6, 7],
+      JPM:  [8, 6, 5, 7, 7],
     };
     const result = [0, 0, 0, 0, 0];
     for (const a of displayAllocations) {
