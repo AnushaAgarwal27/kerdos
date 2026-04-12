@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Zap } from "lucide-react";
-import MarketTicker from "@/components/MarketTicker";
+import React from "react";
+import { motion } from "framer-motion";
+import { Search, DollarSign, Zap, Utensils, ShoppingCart, Plane, Fuel, Film, Tag } from "lucide-react";
 import { getLinkedCardIds } from "@/lib/linkedCards";
+import { MenuItem, MenuContainer } from "@/components/ui/fluid-menu";
 
 const CATEGORIES = [
-  { id: "dining",        label: "Dining",       icon: "🍽️" },
-  { id: "groceries",     label: "Groceries",    icon: "🛒" },
-  { id: "travel",        label: "Travel",       icon: "✈️" },
-  { id: "gas",           label: "Gas",          icon: "⛽" },
-  { id: "entertainment", label: "Entertainment",icon: "🎬" },
-  { id: "other",         label: "Other",        icon: "🛍️" },
+  { id: "dining",        label: "Dining",   icon: <Utensils    size={22} strokeWidth={1.5} color="#fff" />, emoji: "🍽️" },
+  { id: "groceries",     label: "Grocery",  icon: <ShoppingCart size={22} strokeWidth={1.5} color="#fff" />, emoji: "🛒" },
+  { id: "travel",        label: "Travel",   icon: <Plane       size={22} strokeWidth={1.5} color="#fff" />, emoji: "✈️" },
+  { id: "gas",           label: "Gas",      icon: <Fuel        size={22} strokeWidth={1.5} color="#fff" />, emoji: "⛽" },
+  { id: "entertainment", label: "Entmt.",   icon: <Film        size={22} strokeWidth={1.5} color="#fff" />, emoji: "🎬" },
+  { id: "other",         label: "Other",    icon: <Tag         size={22} strokeWidth={1.5} color="#fff" />, emoji: "🛍️" },
 ];
 
 type ApiCard = {
@@ -34,6 +35,27 @@ function rankCards(cards: ApiCard[], category: string, amount: number): CardResu
   }).sort((a, b) => b.score - a.score);
 }
 
+const glass = {
+  background: "rgba(18,18,18,0.72)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(24px)",
+  WebkitBackdropFilter: "blur(24px)",
+  borderRadius: 22,
+};
+
+// Green-tinted icon for the active trigger
+function ActiveIcon({ id }: { id: string }) {
+  const GREEN = "rgba(0,200,5,0.9)";
+  switch (id) {
+    case "dining":        return <Utensils     size={22} strokeWidth={1.8} color={GREEN} />;
+    case "groceries":     return <ShoppingCart  size={22} strokeWidth={1.8} color={GREEN} />;
+    case "travel":        return <Plane         size={22} strokeWidth={1.8} color={GREEN} />;
+    case "gas":           return <Fuel          size={22} strokeWidth={1.8} color={GREEN} />;
+    case "entertainment": return <Film          size={22} strokeWidth={1.8} color={GREEN} />;
+    default:              return <Tag           size={22} strokeWidth={1.8} color={GREEN} />;
+  }
+}
+
 export default function SmartSwipePage() {
   const [cards,         setCards]         = useState<ApiCard[]>([]);
   const [loading,       setLoading]       = useState(true);
@@ -46,6 +68,7 @@ export default function SmartSwipePage() {
 
   const parsedAmount = parseFloat(amount) || 0;
   const barMax = results?.[0]?.score ?? 1;
+  const activeCat = CATEGORIES.find(c => c.id === category) ?? CATEGORIES[0];
 
   const activeCards = linkedCardIds
     ? cards.filter(c => linkedCardIds.includes(c.id))
@@ -74,207 +97,334 @@ export default function SmartSwipePage() {
 
   return (
     <motion.div
-      className="min-h-screen"
+      className="flex flex-col"
+      style={{ paddingTop: 72, height: "100vh" }}
       initial={{ opacity: 0, filter: "blur(8px)" }}
       animate={{ opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
+      <div
+        className="flex flex-1"
+        style={{ padding: "24px 36px 0", minHeight: 0, gap: 24 }}
+      >
 
-      {/* Header */}
-      <div className="px-4 pt-12 pb-3">
-        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--green)" }}>SMARTSWIPE</span>
-        <h1 className="text-2xl font-bold text-white mt-1">Best Card Recommender</h1>
-        <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>
-          {loading
-            ? "Loading live reward rates..."
-            : linkedCardIds
-              ? `${activeCards.length} linked card${activeCards.length !== 1 ? "s" : ""} via Plaid`
-              : "Enter a purchase — we rank every card instantly."}
-        </p>
-      </div>
+        {/* ── LEFT ── */}
+        <div className="flex flex-col" style={{ flex: 1, gap: 12, minHeight: 0 }}>
 
-      <MarketTicker />
+          {/* Row 1: Amount — label left, input right */}
+          <div
+            style={{
+              ...glass,
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 32px",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 0, left: 24, right: 24, height: 2,
+              background: "linear-gradient(to right, rgba(0,200,5,0.7), rgba(0,200,5,0.06))",
+              borderRadius: "0 0 4px 4px",
+            }} />
+            {/* Label */}
+            <div className="flex items-center gap-3" style={{ flexShrink: 0, minWidth: 140 }}>
+              <DollarSign size={16} color="rgba(0,200,5,0.9)" strokeWidth={2.5} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+                Amount
+              </span>
+            </div>
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.1)", marginRight: 32, flexShrink: 0 }} />
+            {/* Input */}
+            <div className="flex items-baseline gap-1.5 flex-1 justify-end">
+              <span style={{ fontSize: 34, fontWeight: 300, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-display)", lineHeight: 1 }}>$</span>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && analyze()}
+                placeholder="0.00"
+                className="bg-transparent focus:outline-none"
+                style={{
+                  fontSize: 48,
+                  fontWeight: 800,
+                  color: "#fff",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "-0.02em",
+                  caretColor: "var(--green)",
+                  textAlign: "right",
+                  width: "8ch",
+                  lineHeight: 1,
+                }}
+              />
+            </div>
+          </div>
 
-      <div className="px-4 pt-4 space-y-3 pb-6">
-
-        {/* Amount input */}
-        <div className="fid-card px-4 py-4">
-          <p className="text-xs mb-2 font-semibold" style={{ color: "var(--text-2)" }}>AMOUNT</p>
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-light" style={{ color: "var(--text-2)" }}>$</span>
+          {/* Row 2: Merchant — label left, input right */}
+          <div
+            style={{
+              ...glass,
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 32px",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 0, left: 24, right: 24, height: 2,
+              background: "linear-gradient(to right, rgba(128,236,255,0.55), rgba(128,236,255,0.06))",
+              borderRadius: "0 0 4px 4px",
+            }} />
+            {/* Label */}
+            <div className="flex items-center gap-3" style={{ flexShrink: 0, minWidth: 140 }}>
+              <Search size={16} color="rgba(128,236,255,0.85)" strokeWidth={2.5} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+                Merchant
+              </span>
+            </div>
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.1)", marginRight: 32, flexShrink: 0 }} />
+            {/* Input */}
             <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="flex-1 bg-transparent text-3xl font-bold text-white focus:outline-none"
+              type="text"
+              value={merchant}
+              onChange={e => setMerchant(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && analyze()}
+              placeholder="Nobu, Whole Foods, Delta..."
+              className="bg-transparent focus:outline-none flex-1"
+              style={{
+                fontSize: 30,
+                fontWeight: 700,
+                color: "#fff",
+                fontFamily: "var(--font-display)",
+                caretColor: "var(--green)",
+                textAlign: "right",
+                lineHeight: 1,
+              }}
             />
           </div>
-        </div>
 
-        {/* Merchant input */}
-        <div className="fid-card px-4 py-4">
-          <p className="text-xs mb-2 font-semibold" style={{ color: "var(--text-2)" }}>MERCHANT (optional)</p>
-          <input
-            type="text"
-            value={merchant}
-            onChange={e => setMerchant(e.target.value)}
-            placeholder="e.g. Nobu, Whole Foods, Delta..."
-            className="w-full bg-transparent text-sm text-white focus:outline-none"
-            style={{ caretColor: "var(--green)" }}
-          />
-        </div>
+          {/* Row 3: Category — label left, pills expand right */}
+          <div
+            style={{
+              ...glass,
+              flex: 0.5,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 32px",
+              paddingBottom: 20,
+              position: "relative",
+              overflow: "visible",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 0, left: 24, right: 24, height: 2,
+              background: "linear-gradient(to right, rgba(255,255,255,0.14), rgba(255,255,255,0.02))",
+              borderRadius: "0 0 4px 4px",
+            }} />
 
-        {/* Category grid */}
-        <div className="fid-card p-4">
-          <p className="text-xs mb-3 font-semibold" style={{ color: "var(--text-2)" }}>CATEGORY</p>
-          <div className="grid grid-cols-3 gap-2">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setCategory(cat.id)}
-                className="flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all"
-                style={{
-                  background: category === cat.id ? "var(--green-dim)" : "var(--surface-2)",
-                  borderColor: category === cat.id ? "var(--green)" : "transparent",
-                }}
+            {/* Label */}
+            <div className="flex items-center gap-3" style={{ flexShrink: 0, minWidth: 140 }}>
+              <motion.span
+                key={category}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.18 }}
+                style={{ fontSize: 20, lineHeight: 1 }}
               >
-                <span className="text-xl">{cat.icon}</span>
-                <span
-                  className="text-[11px] font-medium"
-                  style={{ color: category === cat.id ? "var(--green)" : "var(--text-2)" }}
-                >
-                  {cat.label}
-                </span>
-              </button>
-            ))}
+                {activeCat.emoji}
+              </motion.span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+                Category
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.1)", marginRight: 28, flexShrink: 0 }} />
+
+            {/* Fluid menu — trigger on left, pills expand right */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <MenuContainer activeKey={category} direction="right">
+                <MenuItem icon={<ActiveIcon id={activeCat.id} />} label={activeCat.label} isActive />
+                {CATEGORIES.filter(c => c.id !== category).map(cat => (
+                  <MenuItem
+                    key={cat.id}
+                    icon={cat.icon}
+                    label={cat.label}
+                    onClick={() => setCategory(cat.id)}
+                  />
+                ))}
+              </MenuContainer>
+            </div>
           </div>
+
+          {/* Analyze button */}
+          <motion.button
+            onClick={analyze}
+            disabled={parsedAmount <= 0 || isAnalyzing}
+            whileHover={parsedAmount > 0 ? { scale: 1.015, boxShadow: "0 0 32px rgba(0,200,5,0.28)" } : {}}
+            whileTap={parsedAmount > 0 ? { scale: 0.97 } : {}}
+            style={{
+              flexShrink: 0,
+              height: 48,
+              borderRadius: 14,
+              border: parsedAmount > 0 ? "1px solid rgba(0,200,5,0.45)" : "1px solid rgba(255,255,255,0.08)",
+              background: parsedAmount > 0 ? "rgba(0,200,5,0.12)" : "rgba(255,255,255,0.03)",
+              color: parsedAmount > 0 ? "var(--green)" : "rgba(255,255,255,0.25)",
+              fontFamily: "var(--font-display)",
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              cursor: parsedAmount > 0 ? "pointer" : "default",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "background 0.2s, color 0.2s, border-color 0.2s",
+            }}
+          >
+            <Zap size={12} strokeWidth={2.5} />
+            {isAnalyzing ? "Analyzing..." : "Find Best Card"}
+          </motion.button>
+
         </div>
 
-        {/* Analyze button */}
-        <button
-          onClick={analyze}
-          disabled={parsedAmount <= 0 || isAnalyzing || loading}
-          className="w-full py-4 rounded-2xl text-black font-bold text-base transition-all disabled:opacity-40"
-          style={{ background: "var(--green)" }}
-        >
-          {isAnalyzing ? "Analyzing..." : "Find Best Card →"}
-        </button>
+        {/* ── RIGHT: Output ── */}
+        <div className="flex flex-col" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            style={{
+              ...glass,
+              flex: 1,
+              minHeight: 0,
+              position: "relative",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 0, left: 20, right: 20, height: 2,
+              background: "linear-gradient(to right, rgba(0,200,5,0.45), rgba(0,200,5,0.04))",
+              borderRadius: "0 0 4px 4px",
+            }} />
 
-        {/* Results */}
-        <AnimatePresence>
-          {results && best && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3"
-            >
-              {/* Winner */}
-              <div className="fid-card p-4" style={{ borderLeft: "3px solid var(--green)" }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap size={14} color="var(--green)" />
-                  <span className="text-xs font-bold tracking-widest" style={{ color: "var(--green)" }}>
-                    BEST CARD
+            {!results && !isAnalyzing && (
+              <div className="flex-1 flex flex-col items-center justify-center" style={{ gap: 10 }}>
+                <Zap size={26} color="rgba(255,255,255,0.08)" strokeWidth={1.5} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.18)", fontFamily: "var(--font-display)", letterSpacing: "0.08em" }}>
+                  Enter an amount to analyze
+                </span>
+              </div>
+            )}
+
+            {isAnalyzing && (
+              <div className="flex-1 flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+                  style={{ width: 26, height: 26, borderRadius: "50%", border: "2px solid rgba(0,200,5,0.15)", borderTopColor: "var(--green)" }}
+                />
+              </div>
+            )}
+
+            {results && (
+              <div className="flex flex-col flex-1 min-h-0" style={{ padding: "24px 24px 20px" }}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4" style={{ flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+                    {activeCat.emoji} {activeCat.label} · ${parsedAmount.toFixed(2)}
+                  </span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "var(--font-display)" }}>
+                    {results.length} cards ranked
                   </span>
                 </div>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-lg font-bold text-white">{best.card.cardIssuer}</p>
-                    <p className="text-sm" style={{ color: "var(--text-2)" }}>{best.card.cardName}</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--text-2)" }}>
-                      {best.rate}x on {category}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold" style={{ color: "var(--green)" }}>
-                      ${best.score.toFixed(2)}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--text-2)" }}>earned back</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* All cards ranked */}
-              <div className="fid-card p-4">
-                <p className="text-xs font-bold mb-4" style={{ color: "var(--text-2)" }}>ALL CARDS RANKED</p>
-                <div className="space-y-4">
-                  {results.map((r, i) => (
-                    <motion.div
-                      key={r.card.id}
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
+                {/* Best card */}
+                {best && (
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      padding: "14px 18px",
+                      borderRadius: 14,
+                      background: "rgba(0,200,5,0.07)",
+                      border: "1px solid rgba(0,200,5,0.22)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,200,5,0.65)", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "var(--font-display)", marginBottom: 3 }}>
+                          Top Pick
+                        </p>
+                        <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", fontFamily: "var(--font-display)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {best.card.cardName}
+                        </p>
+                        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", fontFamily: "var(--font-display)", marginTop: 1 }}>
+                          {best.card.cardIssuer} · {best.rate}x {best.card.isCashback ? "cashback" : "pts"}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 26, fontWeight: 800, color: "var(--green)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                          ${best.score.toFixed(2)}
+                        </p>
+                        <p style={{ fontSize: 10, color: "rgba(0,200,5,0.45)", fontFamily: "var(--font-display)", marginTop: 2 }}>
+                          earned
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rest of results */}
+                <div className="flex flex-col flex-1 min-h-0 overflow-auto" style={{ gap: 6 }}>
+                  {results.slice(1).map(({ card, score, rate }, i) => (
+                    <div
+                      key={card.id}
+                      style={{
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        background: "rgba(255,255,255,0.025)",
+                        border: "1px solid rgba(255,255,255,0.055)",
+                        gap: 10,
+                      }}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0"
-                            style={{
-                              background: i === 0 ? "var(--green)" : "var(--surface-2)",
-                              color: i === 0 ? "#000" : "var(--text-2)",
-                            }}
-                          >
-                            {i + 1}
-                          </span>
-                          <div>
-                            <span className="text-sm text-white font-medium">{r.card.cardIssuer}</span>
-                            <span className="text-xs ml-1" style={{ color: "var(--text-2)" }}>
-                              {r.card.cardName}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span
-                            className="text-sm font-semibold"
-                            style={{ color: i === 0 ? "var(--green)" : "var(--text-2)" }}
-                          >
-                            ${r.score.toFixed(2)}
-                          </span>
-                          <span className="text-xs ml-1" style={{ color: "var(--text-3)" }}>
-                            ({r.rate}x)
-                          </span>
-                        </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.22)", fontFamily: "var(--font-display)", width: 16, textAlign: "center", flexShrink: 0 }}>
+                        {i + 2}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.8)", fontFamily: "var(--font-display)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {card.cardName}
+                        </p>
+                        <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-display)" }}>
+                          {rate}x · {card.cardIssuer}
+                        </p>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(r.score / barMax) * 100}%` }}
-                          transition={{ duration: 0.5, delay: i * 0.06 }}
-                          className="h-full rounded-full"
-                          style={{ background: i === 0 ? "var(--green)" : "var(--surface-3)" }}
-                        />
+                      <div style={{ width: 64, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden", flexShrink: 0 }}>
+                        <div style={{ height: "100%", width: `${(score / barMax) * 100}%`, background: "rgba(0,200,5,0.38)", borderRadius: 2 }} />
                       </div>
-                    </motion.div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display)", minWidth: 44, textAlign: "right", flexShrink: 0 }}>
+                        ${score.toFixed(2)}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
-
-              {/* AI insight */}
-              <div className="fid-card p-4">
-                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-2)" }}>
-                  AI INSIGHT
-                </p>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-2)" }}>
-                  Using{" "}
-                  <span className="text-white font-semibold">
-                    {best.card.cardIssuer} {best.card.cardName}
-                  </span>{" "}
-                  earns{" "}
-                  <span style={{ color: "var(--green)" }} className="font-semibold">
-                    ${best.score.toFixed(2)}
-                  </span>{" "}
-                  —{" "}
-                  <span className="text-white font-semibold">
-                    ${(best.score - (results[results.length - 1]?.score ?? 0)).toFixed(2)} more
-                  </span>{" "}
-                  than your worst card.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Bottom gap */}
+      <div style={{ height: "16.67vh", flexShrink: 0 }} />
     </motion.div>
   );
 }

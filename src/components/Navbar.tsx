@@ -24,7 +24,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8" style={{ height: 72 }}>
 
       {/* Spacer — keeps pill centered; KerdosWordmark floats here independently */}
       <div style={{ width: "120px" }} />
@@ -33,7 +33,7 @@ export default function Navbar() {
       <motion.nav
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        transition={{ type: "spring", stiffness: 420, damping: 32 }}
         role="navigation"
         aria-label="Main navigation"
         className="flex items-center p-1.5 rounded-full space-x-1"
@@ -85,13 +85,13 @@ export default function Navbar() {
                       marginLeft: active ? "8px" : "0px",
                     }}
                     transition={{
-                      width:      { type: "spring", stiffness: 500, damping: 36 },
+                      width:      { type: "spring", stiffness: 600, damping: 38 },
                       opacity:    { duration: 0.12 },
                       marginLeft: { duration: 0.12 },
                     }}
                     className="overflow-hidden flex items-center"
                   >
-                    <span className="font-medium text-xs whitespace-nowrap select-none text-white">
+                    <span className="whitespace-nowrap select-none text-white" style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "0.01em" }}>
                       {label}
                     </span>
                   </motion.div>
@@ -104,9 +104,12 @@ export default function Navbar() {
 
       {/* Profile — top right, same width as logo spacer to keep pill centered */}
       <div style={{ width: "120px" }} className="flex justify-end">
-        <button
+        <motion.button
           aria-label="Profile"
           className="flex items-center justify-center rounded-full"
+          whileHover={{ scale: 1.08, borderColor: "rgba(255,255,255,0.22)", boxShadow: "0 4px 24px rgba(0,0,0,0.6)" }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
           style={{
             width: 52, height: 52,
             background: "rgba(22,22,22,0.85)",
@@ -116,10 +119,11 @@ export default function Navbar() {
             boxShadow: "0 4px 32px rgba(0,0,0,0.5)",
             color: "#fff",
             flexShrink: 0,
+            cursor: "pointer",
           }}
         >
           <User size={20} strokeWidth={1.5} />
-        </button>
+        </motion.button>
       </div>
 
     </header>

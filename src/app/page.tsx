@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { motion, useMotionValue, animate } from "framer-motion";
 import Link from "next/link";
 import { TrendingUp, Wallet, Star, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,31 +15,81 @@ const STATS = [
   { label: "Net Gain",      value: "$847",    delta: "+15.3%", sub: "portfolio boost",  icon: TrendingUp, color: "var(--green)" },
 ];
 
-const CARDS_PER_PAGE = 4;
-const CARD_WIDTH     = 270;
-const CARD_GAP       = 20;
+// Module-level cache — survives client-side navigation
+let _cachedCards: CreditCardData[] | null = null;
+
+const CARD_WIDTH = 270;
+const CARD_GAP   = 20;
+const CARD_STEP  = CARD_WIDTH + CARD_GAP;
+
+const SPRING = { type: "spring" as const, stiffness: 420, damping: 38, mass: 1 };
 
 export default function HomePage() {
-  const [cards, setCards]                 = useState<CreditCardData[]>([]);
-  const [linkedIds, setLinkedIds]         = useState<string[] | null>(null);
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [cards, setCards]         = useState<CreditCardData[]>([]);
+  const [linkedIds, setLinkedIds] = useState<string[] | null>(null);
+
+  // Looping carousel via MotionValue
+  const x         = useMotionValue(0);
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Triple-render for infinite loop; re-derive when cards change
+  const cards3x = useMemo(() => [...cards, ...cards, ...cards], [cards]);
+  const setW    = useMemo(() => cards.length * CARD_STEP, [cards.length]);
+
+  // Seed x to middle set once cards are loaded
+  useEffect(() => {
+    if (cards.length > 0) x.set(-setW);
+  }, [cards.length, setW, x]);
+
+  const loopCorrect = useCallback(() => {
+    const cur = x.get();
+    if (setW === 0) return;
+    if (cur > -setW * 0.5)   x.set(cur - setW);
+    if (cur < -setW * 1.5)   x.set(cur + setW);
+  }, [x, setW]);
+
+  const snapNearest = useCallback((vel = 0) => {
+    loopCorrect();
+    const raw     = x.get();
+    const snapped = Math.round(raw / CARD_STEP) * CARD_STEP;
+    animate(x, snapped, { ...SPRING, velocity: vel });
+  }, [x, loopCorrect]);
+
+  const stepBy = useCallback((delta: number) => {
+    loopCorrect();
+    const target = Math.round(x.get() / CARD_STEP - delta) * CARD_STEP;
+    animate(x, target, SPRING);
+  }, [x, loopCorrect]);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    x.set(x.get() - e.deltaX - e.deltaY * 0.6);
+    loopCorrect();
+    if (snapTimer.current) clearTimeout(snapTimer.current);
+    snapTimer.current = setTimeout(() => snapNearest(), 160);
+  }, [x, loopCorrect, snapNearest]);
 
   useEffect(() => {
+    setLinkedIds(getLinkedCardIds());
+
+    // Use cache if available — skip network entirely
+    if (_cachedCards) {
+      setCards(_cachedCards);
+      return;
+    }
+
     fetch("/api/rewards")
       .then(r => r.json())
       .then(async (apiCards: any[]) => {
-        // Build base card list first so UI isn't blank while images load
         const base: CreditCardData[] = apiCards.map(c => ({
           id: c.id, issuer: c.cardIssuer ?? c.id, name: c.cardName ?? c.id,
           last4: USER_CARDS[c.id]?.last4 ?? "0000",
           network: c.cardNetwork ?? "",
           color: c.id,
-          // store the rewardscc slug for image fetching
           _cardKey: c.cardKey ?? c.id,
         } as any));
         setCards(base);
 
-        // Fetch card images using the rewardscc cardKey slug (not the internal id)
         const imageResults = await Promise.allSettled(
           apiCards.map(c =>
             fetch(`/api/rewards/image?cardKey=${c.cardKey ?? c.id}`)
@@ -59,17 +109,13 @@ export default function HomePage() {
           }
         }
 
-        setCards(prev => prev.map(c => ({ ...c, imageUrl: imageMap[c.id] ?? c.imageUrl })));
+        const final = base.map(c => ({ ...c, imageUrl: imageMap[c.id] ?? c.imageUrl }));
+        _cachedCards = final;
+        setCards(final);
       })
       .catch(() => {});
-
-    setLinkedIds(getLinkedCardIds());
   }, []);
 
-  const totalItems = cards.length + 1;
-  const maxIndex   = Math.max(0, totalItems - CARDS_PER_PAGE);
-  const canPrev    = carouselIndex > 0;
-  const canNext    = carouselIndex < maxIndex;
 
   return (
     <div className="h-screen overflow-hidden flex flex-col" style={{ paddingTop: "72px" }}>
@@ -93,7 +139,7 @@ export default function HomePage() {
           className="w-1/2 flex flex-col items-end justify-center gap-5 pr-[15vw]"
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
         >
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", letterSpacing: "0.13em", textTransform: "uppercase", fontFamily: "var(--font-display)", textAlign: "right" }}>
             Total Rewards Balance
@@ -116,7 +162,7 @@ export default function HomePage() {
         className="flex-1 flex flex-col justify-center min-h-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.18 }}
+        transition={{ delay: 0.08 }}
       >
         {/* Header — bounded by same 10vw–85vw as Band 1 */}
         <div className="flex items-center justify-between mb-4 shrink-0" style={{ paddingLeft: "10vw", paddingRight: "15vw" }}>
@@ -133,175 +179,198 @@ export default function HomePage() {
 
           {/* Left arrow */}
           <button
-            onClick={() => setCarouselIndex(i => Math.max(0, i - 1))}
-            disabled={!canPrev}
+            onClick={() => stepBy(1)}
             className="absolute z-10 flex items-center justify-center rounded-full transition-all shrink-0"
             style={{
               left: "calc(10vw - 52px)",
               width: 40, height: 40,
               background: "rgba(255,255,255,0.12)",
               border: "1px solid rgba(255,255,255,0.2)",
-              opacity: canPrev ? 1 : 0.35,
-              cursor: canPrev ? "pointer" : "default",
-              boxShadow: canPrev ? "0 2px 12px rgba(0,0,0,0.4)" : "none",
+              opacity: cards.length > 0 ? 1 : 0.35,
+              cursor: cards.length > 0 ? "pointer" : "default",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
             }}
           >
             <ChevronLeft size={20} color="#fff" strokeWidth={2} />
           </button>
 
-          {/* Right arrow — positioned at the 85vw boundary */}
+          {/* Right arrow */}
           <button
-            onClick={() => setCarouselIndex(i => Math.min(maxIndex, i + 1))}
-            disabled={!canNext}
+            onClick={() => stepBy(-1)}
             className="absolute z-10 flex items-center justify-center rounded-full transition-all shrink-0"
             style={{
               right: "calc(15vw - 52px)",
               width: 40, height: 40,
               background: "rgba(255,255,255,0.12)",
               border: "1px solid rgba(255,255,255,0.2)",
-              opacity: canNext ? 1 : 0.35,
-              cursor: canNext ? "pointer" : "default",
-              boxShadow: canNext ? "0 2px 12px rgba(0,0,0,0.4)" : "none",
+              opacity: cards.length > 0 ? 1 : 0.35,
+              cursor: cards.length > 0 ? "pointer" : "default",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
             }}
           >
             <ChevronRight size={20} color="#fff" strokeWidth={2} />
           </button>
 
-          {/* Fade reaches 0 just before the 85vw right boundary */}
           <div
-            className="overflow-hidden w-full h-full flex items-center"
+            className="overflow-hidden w-full flex items-center"
+            onWheel={handleWheel}
             style={{
               paddingLeft: "10vw",
-              maskImage: "linear-gradient(to right, transparent 0%, black 7%, black 80%, transparent 95%)",
-              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 7%, black 80%, transparent 95%)",
+              paddingTop: 20,
+              paddingBottom: 20,
+              marginTop: -20,
+              marginBottom: -20,
+              cursor: "grab",
+              maskImage: "linear-gradient(to right, transparent 10%, black 15%, black 78%, transparent 87%)",
+              WebkitMaskImage: "linear-gradient(to right, transparent 10%, black 15%, black 78%, transparent 87%)",
             }}
           >
             <motion.div
               className="flex"
-              style={{ gap: CARD_GAP }}
-              animate={{ x: -(carouselIndex * (CARD_WIDTH + CARD_GAP)) }}
-              transition={{ type: "spring", stiffness: 300, damping: 32 }}
+              style={{ gap: CARD_GAP, x }}
+              drag="x"
+              dragConstraints={{ left: -999999, right: 999999 }}
+              dragElastic={0}
+              dragMomentum={false}
+              whileDrag={{ cursor: "grabbing" }}
+              onDragEnd={(_, info) => {
+                snapNearest(info.velocity.x);
+              }}
             >
-              {cards.map((card, i) => (
-                <motion.div
-                  key={card.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.07, type: "spring", stiffness: 200, damping: 24 }}
-                  whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
-                  className="shrink-0 cursor-pointer"
+              {cards3x.map((card, i) => (
+                <div
+                  key={`${card.id}-${i}`}
+                  className="shrink-0"
+                  style={{ pointerEvents: "auto" }}
                 >
                   <CreditCard card={card} width={CARD_WIDTH} />
-                </motion.div>
+                </div>
               ))}
             </motion.div>
           </div>
         </div>
 
         {/* Add Card — centered below carousel, 1/3 card height */}
-        <div className="flex justify-center shrink-0 mt-3">
+        <div className="flex justify-center shrink-0 mt-9">
           <Link href="/plaid-link" target="_blank">
-            <Button
-              className="rounded-full gap-2 font-bold tracking-wide"
+            <motion.button
+              className="rounded-full flex items-center gap-2.5"
+              whileHover={{ scale: 1.04, boxShadow: "0 0 36px rgba(0,200,5,0.32), inset 0 1px 0 rgba(0,200,5,0.25)" }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
               style={{
-                height: Math.round(CARD_WIDTH * 0.63 / 3),
-                paddingLeft: 24,
-                paddingRight: 24,
-                background: "rgba(0,200,5,0.12)",
-                border: "1px solid rgba(0,200,5,0.4)",
+                height: Math.round(CARD_WIDTH * 0.63 / 3) - 10,
+                paddingLeft: 36,
+                paddingRight: 36,
+                background: "rgba(0,200,5,0.15)",
+                border: "1px solid rgba(0,200,5,0.55)",
                 color: "var(--green)",
                 fontFamily: "var(--font-display)",
-                fontSize: 13,
-                letterSpacing: "0.04em",
-                boxShadow: "0 0 16px rgba(0,200,5,0.12)",
+                fontSize: 11,
+                fontWeight: 900,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                boxShadow: "0 0 24px rgba(0,200,5,0.18), inset 0 1px 0 rgba(0,200,5,0.2)",
+                cursor: "pointer",
               }}
             >
-              <Plus size={14} strokeWidth={2.2} />
+              <Plus size={13} strokeWidth={3} />
               Add Card
-            </Button>
+            </motion.button>
           </Link>
         </div>
       </motion.div>
 
       {/* ── Band 3: Stats ── */}
       <motion.div
-        className="flex-1 flex flex-row items-center gap-4 min-h-0"
-        style={{ paddingLeft: "10vw", paddingRight: "15vw", paddingBottom: "16px" }}
+        className="flex-1 flex items-center gap-6 min-h-0"
+        style={{ paddingLeft: "13vw", paddingRight: "12vw", paddingTop: "28px", paddingBottom: "36px" }}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.28 }}
+        transition={{ delay: 0.12 }}
       >
-        {STATS.map(({ label, value, delta, sub, icon: Icon, color }, i) => (
-          <motion.div
-            key={label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.07 }}
-            className="flex-1 h-full flex flex-col justify-between"
-            style={{
-              background: "rgba(16,16,16,0.75)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              backdropFilter: "blur(24px)",
-              borderRadius: 20,
-              padding: "20px 22px 18px",
-              maxHeight: 136,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {/* Subtle colored glow in corner */}
-            <div style={{
-              position: "absolute", top: -20, right: -20,
-              width: 80, height: 80, borderRadius: "50%",
-              background: `radial-gradient(circle, ${color === "var(--green)" ? "rgba(0,200,5,0.12)" : "rgba(128,236,255,0.10)"} 0%, transparent 70%)`,
-              pointerEvents: "none",
-            }} />
+        {STATS.map(({ label, value, delta, sub, icon: Icon, color }, i) => {
+          const isGreen = color === "var(--green)";
+          const rgb     = isGreen ? "0,200,5" : "128,236,255";
+          return (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -4, scale: 1.03, border: `1px solid rgba(${rgb},0.45)`, boxShadow: `0 12px 32px rgba(${rgb},0.12), 0 4px 12px rgba(0,0,0,0.3)` }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ delay: 0.15 + i * 0.05, type: "spring", stiffness: 400, damping: 28 }}
+              className="flex-1 flex flex-col items-center justify-center gap-1.5"
+              style={{ cursor: "pointer" }}
+              style={{
+                maxHeight: "72%",
+                padding: "12px 20px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 20,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Accent top bar */}
+              <div style={{
+                position: "absolute", top: 0, left: 18, right: 18, height: 2,
+                background: `linear-gradient(to right, rgba(${rgb},0.75), rgba(${rgb},0.1))`,
+                borderRadius: "0 0 4px 4px",
+              }} />
 
-            {/* Label row */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}>
-                <Icon size={12} color={color} strokeWidth={2} />
+              {/* Label */}
+              <div className="flex items-center gap-2">
+                <Icon size={14} color={`rgba(${rgb},0.9)`} strokeWidth={2} />
+                <span style={{
+                  fontSize: 13, fontWeight: 700,
+                  color: "rgba(255,255,255,0.7)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  fontFamily: "var(--font-display)",
+                }}>
+                  {label}
+                </span>
               </div>
+
+              {/* Value — dominant hero */}
               <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: "rgba(255,255,255,0.55)",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
+                fontSize: "clamp(32px, 3.8vw, 50px)",
+                fontWeight: 800,
+                lineHeight: 1,
+                letterSpacing: "-0.03em",
                 fontFamily: "var(--font-display)",
+                color: "#fff",
               }}>
-                {label}
+                {value}
               </span>
-            </div>
 
-            {/* Value — hero number */}
-            <p style={{
-              fontSize: "clamp(26px, 2.6vw, 36px)",
-              fontWeight: 800,
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              fontFamily: "var(--font-display)",
-              color: "#fff",
-            }}>
-              {value}
-            </p>
-
-            {/* Delta row */}
-            <div className="flex items-center gap-1.5">
+              {/* Delta */}
               <span style={{
-                fontSize: 12, fontWeight: 700,
+                fontSize: 17, fontWeight: 700,
                 color,
-                letterSpacing: "0.01em",
                 fontFamily: "var(--font-display)",
+                letterSpacing: "0.02em",
               }}>
                 {delta}
               </span>
-              <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.42)", fontFamily: "var(--font-display)" }}>
+
+              {/* Sub */}
+              <span style={{
+                fontSize: 12, fontWeight: 500,
+                color: "rgba(255,255,255,0.5)",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "0.02em",
+              }}>
                 {sub}
               </span>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </motion.div>
 
     </div>

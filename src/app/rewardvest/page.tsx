@@ -243,7 +243,7 @@ export default function RewardVestPage() {
       className="min-h-screen"
       initial={{ opacity: 0, filter: "blur(8px)" }}
       animate={{ opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
       <div className="px-4 pt-12 pb-3">
         <span className="text-[10px] font-bold tracking-widest" style={{ color: "#5ac8fa" }}>INVEST</span>

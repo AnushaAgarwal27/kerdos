@@ -19,7 +19,7 @@ export default function TransactPage() {
       className="min-h-screen"
       initial={{ opacity: 0, filter: "blur(8px)" }}
       animate={{ opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
       <div className="px-4 pt-12 pb-4">
         <h1 className="text-2xl font-bold text-white mb-1">Transact</h1>
