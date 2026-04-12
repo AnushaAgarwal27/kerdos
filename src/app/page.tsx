@@ -25,6 +25,8 @@ export default function HomePage() {
   const [linkedIds, setLinkedIds] = useState<string[] | null>(null);
   const [showPlaid, setShowPlaid] = useState(false);
   const [liveStats, setLiveStats] = useState<{
+    totalEarned: number;
+    thisMonthEarned: number;
     lastCycleCashback: number;
     totalPoints: number;
     portfolioGain: number;
@@ -129,12 +131,19 @@ export default function HomePage() {
         transactions?: { estimatedValue: number; createdAt: string }[];
       }) => {
         const now = new Date();
+        const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
-        const lastCycleCashback = (data.transactions ?? [])
+        const txns = data.transactions ?? [];
+        const thisMonthEarned = txns
+          .filter(t => t.createdAt.startsWith(thisMonthKey))
+          .reduce((s, t) => s + t.estimatedValue, 0);
+        const lastCycleCashback = txns
           .filter(t => t.createdAt.startsWith(lastMonthKey))
           .reduce((s, t) => s + t.estimatedValue, 0);
         setLiveStats({
+          totalEarned: data.totalEarned ?? 0,
+          thisMonthEarned,
           lastCycleCashback,
           totalPoints: data.totalPoints ?? 0,
           portfolioGain: getPortfolioGain(),
@@ -201,12 +210,22 @@ export default function HomePage() {
           </p>
           <p className="font-extrabold tracking-tighter leading-none text-right"
             style={{ fontSize: "clamp(52px, 7vw, 88px)", fontFamily: "var(--font-display)", color: "var(--green)" }}>
-            $1,187<span style={{ color: "rgba(0,200,5,0.38)" }}>.00</span>
+            {liveStats
+              ? <>
+                  ${Math.floor(liveStats.totalEarned).toLocaleString()}
+                  <span style={{ color: "rgba(0,200,5,0.38)" }}>
+                    .{String(Math.round((liveStats.totalEarned % 1) * 100)).padStart(2, "0")}
+                  </span>
+                </>
+              : <span style={{ color: "rgba(0,200,5,0.4)", fontSize: "0.6em" }}>loading...</span>
+            }
           </p>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full"
             style={{ background: "var(--green-dim)", border: "1px solid rgba(0,200,5,0.18)" }}>
             <TrendingUp size={12} strokeWidth={2.5} color="var(--green)" />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green)", fontFamily: "var(--font-display)" }}>+12.4%</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green)", fontFamily: "var(--font-display)" }}>
+              {liveStats ? `+$${liveStats.thisMonthEarned.toFixed(2)}` : "..."}
+            </span>
             <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.52)", fontFamily: "var(--font-display)" }}>this month</span>
           </div>
         </motion.div>
