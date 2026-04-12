@@ -5,7 +5,7 @@ const ANALYSIS_DIR = path.join(process.cwd(), "data", "analysis");
 
 // JSON files from Python may contain NaN — replace with null before parsing
 function parseWithNaN(text: string) {
-  return JSON.parse(text.replace(/:\s*NaN/g, ": null"));
+  return JSON.parse(text.replace(/\bNaN\b/g, "null"));
 }
 
 export async function GET(request: Request) {

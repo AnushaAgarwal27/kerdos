@@ -13,7 +13,14 @@ export async function GET() {
     });
     const data = await res.json();
     const cards = Array.isArray(data) ? data : [data];
-    results.push({ query, status: res.status, matches: cards.map((c: any) => ({ cardKey: c.cardKey, cardName: c.cardName })) });
+    results.push({
+      query,
+      status: res.status,
+      matches: cards.map((card: { cardKey?: string; cardName?: string }) => ({
+        cardKey: card.cardKey ?? null,
+        cardName: card.cardName ?? null,
+      })),
+    });
     await new Promise(r => setTimeout(r, 400));
   }
   return NextResponse.json(results);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, type CSSProperties } from "react";
-import { usePlaidLink } from "react-plaid-link";
+import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from "react-plaid-link";
+import { DEMO_USER_ID } from "@/lib/demoUser";
 
 const SANDBOX_PASSWORD = JSON.stringify({
   override_accounts: [
@@ -25,13 +26,14 @@ export default function PlaidLinkPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const onSuccess = useCallback(async (public_token: string) => {
+  const onSuccess = useCallback(async (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
     setStatus("exchanging");
     try {
+      const selectedAccountIds = metadata.accounts.map((account) => account.id);
       const res  = await fetch("/api/plaid/exchange-token", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ publicToken: public_token }),
+        body:    JSON.stringify({ publicToken: public_token, userId: DEMO_USER_ID, selectedAccountIds }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Exchange failed");
@@ -67,7 +69,11 @@ export default function PlaidLinkPage() {
     setStatus("loading");
     setError(null);
     try {
-      const res  = await fetch("/api/plaid/create-link-token", { method: "POST" });
+      const res  = await fetch("/api/plaid/create-link-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: DEMO_USER_ID }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to create link token");
       setLinkToken(data.link_token);

@@ -4,7 +4,10 @@ export type LinkedCardMapping = {
   plaidAccountId: string;
   plaidName:      string;
   plaidMask:      string;
-  cardId:         string; // matches internal IDs: amex-gold | chase-sapphire | citi-double | discover-it | capital-venture
+  cardId:         string; // dynamic card identifier, typically the rewardscc cardKey
+  cardKey?:       string;
+  cardName?:      string;
+  cardIssuer?:    string;
 };
 
 export function getLinkedCards(): LinkedCardMapping[] | null {
@@ -17,9 +20,20 @@ export function getLinkedCards(): LinkedCardMapping[] | null {
   }
 }
 
+function mergeLinkedCardMappings(cards: LinkedCardMapping[]): LinkedCardMapping[] {
+  const byAccountId = new Map<string, LinkedCardMapping>();
+
+  for (const card of cards) {
+    byAccountId.set(card.plaidAccountId, card);
+  }
+
+  return [...byAccountId.values()];
+}
+
 export function setLinkedCards(cards: LinkedCardMapping[]): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(KEY, JSON.stringify(cards));
+  const existing = getLinkedCards() ?? [];
+  localStorage.setItem(KEY, JSON.stringify(mergeLinkedCardMappings([...existing, ...cards])));
 }
 
 export function clearLinkedCards(): void {

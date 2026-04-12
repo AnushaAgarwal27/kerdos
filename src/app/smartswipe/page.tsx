@@ -1,98 +1,189 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { CheckCircle, Zap } from "lucide-react";
 import MarketTicker from "@/components/MarketTicker";
-import { getLinkedCardIds } from "@/lib/linkedCards";
+import { DEMO_USER_ID } from "@/lib/demoUser";
 
 const CATEGORIES = [
-  { id: "dining",        label: "Dining",       icon: "🍽️" },
-  { id: "groceries",     label: "Groceries",    icon: "🛒" },
-  { id: "travel",        label: "Travel",       icon: "✈️" },
-  { id: "gas",           label: "Gas",          icon: "⛽" },
-  { id: "entertainment", label: "Entertainment",icon: "🎬" },
-  { id: "other",         label: "Other",        icon: "🛍️" },
-];
+  { id: "dining", label: "Dining", icon: "DIN" },
+  { id: "groceries", label: "Groceries", icon: "GRC" },
+  { id: "travel", label: "Travel", icon: "TRV" },
+  { id: "gas", label: "Gas", icon: "GAS" },
+  { id: "entertainment", label: "Entertainment", icon: "ENT" },
+  { id: "other", label: "Other", icon: "OTH" },
+] as const;
 
-type ApiCard = {
-  id: string; cardKey: string; cardName: string; cardIssuer: string;
-  cardNetwork: string; annualFee: number; pointValuation: number;
-  isCashback: boolean; baseSpendEarnCurrency: string;
-  rewardRates: Record<string, number>;
+type LinkedCardsResponse = {
+  linkedCards: { cardId: string }[];
 };
 
-type CardResult = { card: ApiCard; score: number; rate: number };
+type RewardsSummary = {
+  totalEarned?: number;
+  totalPoints?: number;
+  totalSpend?: number;
+};
 
-function rankCards(cards: ApiCard[], category: string, amount: number): CardResult[] {
-  return cards.map(card => {
-    const rate = card.rewardRates[category] ?? card.rewardRates["other"] ?? 1;
-    const score = card.isCashback
-      ? (rate / 100) * amount
-      : (rate / 100) * (card.pointValuation ?? 1) * amount;
-    return { card, score, rate };
-  }).sort((a, b) => b.score - a.score);
-}
+type CardResult = {
+  cardId: string;
+  cardKey: string;
+  cardName: string | null;
+  issuer: string | null;
+  rate: number;
+  estimatedValue: number;
+  rewardCurrency: string;
+  reason: string;
+  source: "merchant" | "category";
+};
+
+type RecommendationResponse = {
+  winner: CardResult | null;
+  rankings: CardResult[];
+  meta: {
+    category: string;
+    source: "merchant" | "category";
+    linkedCardCount: number;
+  };
+};
 
 export default function SmartSwipePage() {
-  const [cards,         setCards]         = useState<ApiCard[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [amount,        setAmount]        = useState("");
-  const [merchant,      setMerchant]      = useState("");
-  const [category,      setCategory]      = useState("dining");
-  const [results,       setResults]       = useState<CardResult[] | null>(null);
-  const [isAnalyzing,   setIsAnalyzing]   = useState(false);
-  const [linkedCardIds, setLinkedCardIds] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [amount, setAmount] = useState("");
+  const [merchant, setMerchant] = useState("");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("dining");
+  const [results, setResults] = useState<RecommendationResponse | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLogging, setIsLogging] = useState(false);
+  const [linkedCardIds, setLinkedCardIds] = useState<string[]>([]);
+  const [summary, setSummary] = useState<RewardsSummary>({});
+  const [error, setError] = useState<string | null>(null);
+  const [logMessage, setLogMessage] = useState<string | null>(null);
+  const [loggedForResult, setLoggedForResult] = useState(false);
 
-  const parsedAmount = parseFloat(amount) || 0;
-  const barMax = results?.[0]?.score ?? 1;
+  const parsedAmount = Number.parseFloat(amount) || 0;
+  const effectiveLinkedCount = linkedCardIds.length;
+  const rankingList = results?.rankings ?? [];
+  const best = results?.winner ?? null;
+  const barMax = rankingList[0]?.estimatedValue && rankingList[0].estimatedValue > 0
+    ? rankingList[0].estimatedValue
+    : 1;
 
-  const activeCards = linkedCardIds
-    ? cards.filter(c => linkedCardIds.includes(c.id))
-    : cards;
+  async function refreshSummary() {
+    const nextSummary = await fetch(`/api/rewards/summary?userId=${DEMO_USER_ID}`, { cache: "no-store" })
+      .then((response) => response.json()) as RewardsSummary;
+    setSummary(nextSummary);
+    return nextSummary;
+  }
 
   useEffect(() => {
-    fetch("/api/rewards")
-      .then(r => r.json())
-      .then(setCards)
-      .catch(() => setCards([]))
+    fetch(`/api/plaid/linked-cards?userId=${DEMO_USER_ID}`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: LinkedCardsResponse) => setLinkedCardIds(data.linkedCards.map((card) => card.cardId)))
+      .catch(() => {})
       .finally(() => setLoading(false));
-    setLinkedCardIds(getLinkedCardIds());
+
+    refreshSummary().catch(() => {});
   }, []);
 
-  const analyze = () => {
-    if (parsedAmount <= 0 || !activeCards.length) return;
+  const analyze = async () => {
+    if (parsedAmount <= 0) return;
+
     setIsAnalyzing(true);
     setResults(null);
-    setTimeout(() => {
-      setResults(rankCards(activeCards, category, parsedAmount));
+    setError(null);
+    setLogMessage(null);
+    setLoggedForResult(false);
+
+    try {
+      const response = await fetch("/api/smartswipe/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: DEMO_USER_ID,
+          amount: parsedAmount,
+          merchant: merchant || undefined,
+          category,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Recommendation failed");
+      }
+
+      setResults(data as RecommendationResponse);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Recommendation failed");
+    } finally {
       setIsAnalyzing(false);
-    }, 600);
+    }
   };
 
-  const best = results?.[0];
+  const logSwipe = async () => {
+    if (!best || !results || loggedForResult) return;
+
+    setIsLogging(true);
+    setLogMessage(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/smartswipe/log-swipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: DEMO_USER_ID,
+          cardId: best.cardId,
+          amount: parsedAmount,
+          merchant: merchant || null,
+          category: results.meta.category,
+          estimatedValue: best.estimatedValue,
+          rate: best.rate,
+          rewardCurrency: best.rewardCurrency,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to log swipe");
+      }
+
+      const nextSummary = await refreshSummary();
+      setLoggedForResult(true);
+      setLogMessage(`Swipe logged. Total rewards are now $${(nextSummary.totalEarned ?? 0).toFixed(2)}.`);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to log swipe");
+    } finally {
+      setIsLogging(false);
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-
-      {/* Header */}
       <div className="px-4 pt-12 pb-3">
         <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--green)" }}>SMARTSWIPE</span>
         <h1 className="text-2xl font-bold text-white mt-1">Best Card Recommender</h1>
         <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>
           {loading
-            ? "Loading live reward rates..."
-            : linkedCardIds
-              ? `${activeCards.length} linked card${activeCards.length !== 1 ? "s" : ""} via Plaid`
-              : "Enter a purchase — we rank every card instantly."}
+            ? "Loading linked cards..."
+            : effectiveLinkedCount > 0
+              ? `${effectiveLinkedCount} linked card${effectiveLinkedCount !== 1 ? "s" : ""} synced to SmartSwipe`
+              : "No linked cards yet. You can still test recommendations with the demo catalog."}
         </p>
       </div>
 
       <MarketTicker />
 
       <div className="px-4 pt-4 space-y-3 pb-6">
+        <div className="fid-card px-4 py-4">
+          <p className="text-xs mb-1 font-semibold" style={{ color: "var(--text-2)" }}>LOGGED REWARDS</p>
+          <p className="text-3xl font-bold text-white">${(summary.totalEarned ?? 0).toFixed(2)}</p>
+          <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: "var(--text-2)" }}>
+            <span>{(summary.totalPoints ?? 0).toLocaleString()} points</span>
+            <span>${(summary.totalSpend ?? 0).toFixed(2)} spend tracked</span>
+          </div>
+        </div>
 
-        {/* Amount input */}
         <div className="fid-card px-4 py-4">
           <p className="text-xs mb-2 font-semibold" style={{ color: "var(--text-2)" }}>AMOUNT</p>
           <div className="flex items-center gap-2">
@@ -100,72 +191,73 @@ export default function SmartSwipePage() {
             <input
               type="number"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
+              onChange={(event) => setAmount(event.target.value)}
               placeholder="0.00"
               className="flex-1 bg-transparent text-3xl font-bold text-white focus:outline-none"
             />
           </div>
         </div>
 
-        {/* Merchant input */}
         <div className="fid-card px-4 py-4">
           <p className="text-xs mb-2 font-semibold" style={{ color: "var(--text-2)" }}>MERCHANT (optional)</p>
           <input
             type="text"
             value={merchant}
-            onChange={e => setMerchant(e.target.value)}
-            placeholder="e.g. Nobu, Whole Foods, Delta..."
+            onChange={(event) => setMerchant(event.target.value)}
+            placeholder="e.g. Delta, Starbucks, Whole Foods"
             className="w-full bg-transparent text-sm text-white focus:outline-none"
             style={{ caretColor: "var(--green)" }}
           />
         </div>
 
-        {/* Category grid */}
         <div className="fid-card p-4">
           <p className="text-xs mb-3 font-semibold" style={{ color: "var(--text-2)" }}>CATEGORY</p>
           <div className="grid grid-cols-3 gap-2">
-            {CATEGORIES.map(cat => (
+            {CATEGORIES.map((item) => (
               <button
-                key={cat.id}
-                onClick={() => setCategory(cat.id)}
+                key={item.id}
+                onClick={() => setCategory(item.id)}
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all"
                 style={{
-                  background: category === cat.id ? "var(--green-dim)" : "var(--surface-2)",
-                  borderColor: category === cat.id ? "var(--green)" : "transparent",
+                  background: category === item.id ? "var(--green-dim)" : "var(--surface-2)",
+                  borderColor: category === item.id ? "var(--green)" : "transparent",
                 }}
               >
-                <span className="text-xl">{cat.icon}</span>
+                <span className="text-[11px] font-bold">{item.icon}</span>
                 <span
                   className="text-[11px] font-medium"
-                  style={{ color: category === cat.id ? "var(--green)" : "var(--text-2)" }}
+                  style={{ color: category === item.id ? "var(--green)" : "var(--text-2)" }}
                 >
-                  {cat.label}
+                  {item.label}
                 </span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Analyze button */}
         <button
           onClick={analyze}
           disabled={parsedAmount <= 0 || isAnalyzing || loading}
           className="w-full py-4 rounded-2xl text-black font-bold text-base transition-all disabled:opacity-40"
           style={{ background: "var(--green)" }}
         >
-          {isAnalyzing ? "Analyzing..." : "Find Best Card →"}
+          {isAnalyzing ? "Analyzing..." : "Find Best Card ->"}
         </button>
 
-        {/* Results */}
+        {error && (
+          <div className="fid-card p-4">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
         <AnimatePresence>
-          {results && best && (
+          {results && best && rankingList.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              {/* Winner */}
               <div className="fid-card p-4" style={{ borderLeft: "3px solid var(--green)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Zap size={14} color="var(--green)" />
@@ -173,71 +265,77 @@ export default function SmartSwipePage() {
                     BEST CARD
                   </span>
                 </div>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-bold text-white">{best.card.cardIssuer}</p>
-                    <p className="text-sm" style={{ color: "var(--text-2)" }}>{best.card.cardName}</p>
+                    <p className="text-lg font-bold text-white">{best.issuer ?? "Recommended Card"}</p>
+                    <p className="text-sm" style={{ color: "var(--text-2)" }}>{best.cardName}</p>
                     <p className="text-xs mt-1" style={{ color: "var(--text-2)" }}>
-                      {best.rate}x on {category}
+                      {best.rate}x on {results.meta.category} · {best.rewardCurrency}
                     </p>
+                    <p className="text-xs mt-2 max-w-sm" style={{ color: "var(--text-2)" }}>{best.reason}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold" style={{ color: "var(--green)" }}>
-                      ${best.score.toFixed(2)}
+                      ${best.estimatedValue.toFixed(2)}
                     </p>
-                    <p className="text-xs" style={{ color: "var(--text-2)" }}>earned back</p>
+                    <p className="text-xs" style={{ color: "var(--text-2)" }}>estimated value</p>
+                    <button
+                      onClick={logSwipe}
+                      disabled={isLogging || loggedForResult}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-60"
+                      style={{
+                        background: loggedForResult ? "rgba(74,222,128,0.15)" : "var(--green-dim)",
+                        color: "var(--green)",
+                        border: "1px solid var(--green)",
+                      }}
+                    >
+                      <CheckCircle size={11} />
+                      {isLogging ? "Logging..." : loggedForResult ? "Logged to RewardVest" : "Log This Swipe"}
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* All cards ranked */}
               <div className="fid-card p-4">
                 <p className="text-xs font-bold mb-4" style={{ color: "var(--text-2)" }}>ALL CARDS RANKED</p>
                 <div className="space-y-4">
-                  {results.map((r, i) => (
+                  {rankingList.map((card, index) => (
                     <motion.div
-                      key={r.card.id}
+                      key={`${card.cardId}-${index}`}
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
+                      transition={{ delay: index * 0.05 }}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <span
                             className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0"
                             style={{
-                              background: i === 0 ? "var(--green)" : "var(--surface-2)",
-                              color: i === 0 ? "#000" : "var(--text-2)",
+                              background: index === 0 ? "var(--green)" : "var(--surface-2)",
+                              color: index === 0 ? "#000" : "var(--text-2)",
                             }}
                           >
-                            {i + 1}
+                            {index + 1}
                           </span>
                           <div>
-                            <span className="text-sm text-white font-medium">{r.card.cardIssuer}</span>
-                            <span className="text-xs ml-1" style={{ color: "var(--text-2)" }}>
-                              {r.card.cardName}
-                            </span>
+                            <span className="text-sm text-white font-medium">{card.issuer}</span>
+                            <span className="text-xs ml-1" style={{ color: "var(--text-2)" }}>{card.cardName}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span
-                            className="text-sm font-semibold"
-                            style={{ color: i === 0 ? "var(--green)" : "var(--text-2)" }}
-                          >
-                            ${r.score.toFixed(2)}
+                          <span className="text-sm font-semibold" style={{ color: index === 0 ? "var(--green)" : "var(--text-2)" }}>
+                            ${card.estimatedValue.toFixed(2)}
                           </span>
-                          <span className="text-xs ml-1" style={{ color: "var(--text-3)" }}>
-                            ({r.rate}x)
-                          </span>
+                          <span className="text-xs ml-1" style={{ color: "var(--text-3)" }}>({card.rate}x)</span>
                         </div>
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${(r.score / barMax) * 100}%` }}
-                          transition={{ duration: 0.5, delay: i * 0.06 }}
+                          animate={{ width: `${(card.estimatedValue / barMax) * 100}%` }}
+                          transition={{ duration: 0.5, delay: index * 0.06 }}
                           className="h-full rounded-full"
-                          style={{ background: i === 0 ? "var(--green)" : "var(--surface-3)" }}
+                          style={{ background: index === 0 ? "var(--green)" : "var(--surface-3)" }}
                         />
                       </div>
                     </motion.div>
@@ -245,27 +343,19 @@ export default function SmartSwipePage() {
                 </div>
               </div>
 
-              {/* AI insight */}
               <div className="fid-card p-4">
-                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-2)" }}>
-                  AI INSIGHT
-                </p>
+                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-2)" }}>AI INSIGHT</p>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-2)" }}>
-                  Using{" "}
-                  <span className="text-white font-semibold">
-                    {best.card.cardIssuer} {best.card.cardName}
-                  </span>{" "}
-                  earns{" "}
-                  <span style={{ color: "var(--green)" }} className="font-semibold">
-                    ${best.score.toFixed(2)}
-                  </span>{" "}
-                  —{" "}
-                  <span className="text-white font-semibold">
-                    ${(best.score - (results[results.length - 1]?.score ?? 0)).toFixed(2)} more
-                  </span>{" "}
-                  than your worst card.
+                  Using <span className="text-white font-semibold">{best.issuer} {best.cardName}</span> returns <span className="font-semibold" style={{ color: "var(--green)" }}>${best.estimatedValue.toFixed(2)}</span> on this swipe,
+                  based on {best.source === "merchant" ? " merchant-specific" : " category"} scoring.
                 </p>
               </div>
+
+              {logMessage && (
+                <div className="fid-card p-4">
+                  <p className="text-sm text-green-400">{logMessage}</p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

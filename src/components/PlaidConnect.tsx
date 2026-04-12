@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { usePlaidLink } from "react-plaid-link";
+import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from "react-plaid-link";
+import { DEMO_USER_ID } from "@/lib/demoUser";
 import { setLinkedCards, type LinkedCardMapping } from "@/lib/linkedCards";
 
 // The JSON to paste as the password in Plaid Link (user_custom)
@@ -34,14 +35,15 @@ export default function PlaidConnect({ onComplete }: Props) {
   };
 
   // After Plaid Link succeeds — exchange token, auto-match cards, save
-  const onSuccess = useCallback(async (public_token: string) => {
+  const onSuccess = useCallback(async (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
     setExchanging(true);
     setError(null);
     try {
+      const selectedAccountIds = metadata.accounts.map((account) => account.id);
       const res = await fetch("/api/plaid/exchange-token", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ publicToken: public_token }),
+        body:    JSON.stringify({ publicToken: public_token, userId: DEMO_USER_ID, selectedAccountIds }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Exchange failed");
@@ -78,7 +80,11 @@ export default function PlaidConnect({ onComplete }: Props) {
     setFetching(true);
     setError(null);
     try {
-      const res = await fetch("/api/plaid/create-link-token", { method: "POST" });
+      const res = await fetch("/api/plaid/create-link-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: DEMO_USER_ID }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to create link token");
       setLinkToken(data.link_token);

@@ -1,57 +1,34 @@
-import { NextResponse } from 'next/server';
-import { PlaidApi, PlaidEnvironments, Configuration, Products } from 'plaid';
+import { NextRequest, NextResponse } from "next/server";
+import { DEMO_USER_ID } from "@/lib/demoUser";
+import { getStoredPlaidUser } from "@/lib/server/localStore";
+import { getTransactionsWithRetry, summarizeTransactions } from "@/lib/server/plaid";
 
-const client = new PlaidApi(
-  new Configuration({
-    basePath: PlaidEnvironments.sandbox,
-    baseOptions: {
-      headers: {
-        'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-        'PLAID-SECRET': process.env.PLAID_SECRET,
-      },
-    },
-  })
-);
-
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-async function getTransactionsWithRetry(access_token: string, retries = 5) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const { data } = await client.transactionsGet({
-        access_token,
-        start_date: '2025-01-01',
-        end_date: '2026-04-11',
-      });
-      return data.transactions;
-    } catch (err: unknown) {
-      const code = (err as any)?.response?.data?.error_code;
-      if (code === 'PRODUCT_NOT_READY' && i < retries - 1) {
-        await delay(2000);
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { data: { public_token } } = await client.sandboxPublicTokenCreate({
-      institution_id: 'ins_109508',
-      initial_products: [Products.Transactions],
-    });
+    const userId = request.nextUrl.searchParams.get("userId")?.trim() || DEMO_USER_ID;
+    const limit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "50", 10);
+    const storedUser = await getStoredPlaidUser(userId);
 
-    const { data: { access_token } } = await client.itemPublicTokenExchange({
-      public_token,
-    });
+    if (!storedUser) {
+      return NextResponse.json({ error: "No Plaid connection found for this user" }, { status: 404 });
+    }
 
-    const transactions = await getTransactionsWithRetry(access_token);
-    return NextResponse.json(transactions);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const plaidError = (err as any)?.response?.data;
-    console.error('Plaid error:', plaidError ?? message);
-    return NextResponse.json({ error: message, detail: plaidError }, { status: 500 });
+    const transactions = (
+      await Promise.all(storedUser.items.map((item) => getTransactionsWithRetry(item.accessToken)))
+    ).flat();
+    const accountFilter = new Set(storedUser.linkedCards.map((card) => card.plaidAccountId));
+    const normalized = summarizeTransactions(
+      transactions.filter((transaction) => accountFilter.has(transaction.account_id)).slice(0, Math.max(limit, 1))
+    );
+
+    return NextResponse.json({
+      userId,
+      linkedCards: storedUser.linkedCards,
+      transactions: normalized,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Plaid transactions error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
