@@ -122,7 +122,7 @@ export default function HomePage() {
 
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col" style={{ paddingTop: "72px" }}>
+    <div className="overflow-hidden flex flex-col" style={{ height: "calc(100vh - 72px)" }}>
 
       {/* ── Band 1: Logo | Rewards ── */}
       <motion.div className="flex-1 flex flex-row min-h-0">
