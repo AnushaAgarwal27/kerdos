@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, useMotionValue, animate, AnimatePresence } from "framer-motion";
 import { TrendingUp, Wallet, Star, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CreditCard, { type CreditCardData } from "@/components/CreditCard";
+import CreditCard, { type CreditCardData, type CardLiveStats } from "@/components/CreditCard";
 import PlaidConnect from "@/components/PlaidConnect";
 import { USER_CARDS } from "@/lib/userCards";
 import { getLinkedCardIds, type LinkedCardMapping } from "@/lib/linkedCards";
@@ -30,6 +30,7 @@ export default function HomePage() {
     lastCycleCashback: number;
     totalPoints: number;
     portfolioGain: number;
+    cardStats: Record<string, { transactionCount: number; totalEarned: number }>;
   } | null>(null);
 
   // Looping carousel via MotionValue
@@ -129,6 +130,7 @@ export default function HomePage() {
         totalEarned?: number;
         totalPoints?: number;
         transactions?: { estimatedValue: number; createdAt: string }[];
+        cards?: Record<string, { transactionCount: number; totalEarned: number }>;
       }) => {
         const now = new Date();
         const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -147,11 +149,26 @@ export default function HomePage() {
           lastCycleCashback,
           totalPoints: data.totalPoints ?? 0,
           portfolioGain: getPortfolioGain(),
+          cardStats: data.cards ?? {},
         });
       })
       .catch(() => {});
   }, [refreshCards]);
 
+
+  // Compute per-card live stats for the card flip side
+  const cardLiveStatsMap = useMemo<Record<string, CardLiveStats>>(() => {
+    const cs = liveStats?.cardStats ?? {};
+    // rank by totalEarned descending
+    const sorted = Object.entries(cs).sort(([, a], [, b]) => b.totalEarned - a.totalEarned);
+    return Object.fromEntries(
+      sorted.map(([id, card], i) => [id, {
+        txns: card.transactionCount > 0 ? card.transactionCount.toLocaleString() : "—",
+        rewards: card.totalEarned > 0 ? `$${card.totalEarned.toFixed(2)}` : "—",
+        rank: card.transactionCount > 0 ? i + 1 : 0,
+      }])
+    );
+  }, [liveStats?.cardStats]);
 
   const gain = liveStats?.portfolioGain ?? 0;
   const STATS = [
@@ -317,7 +334,7 @@ export default function HomePage() {
                   className="shrink-0"
                   style={{ pointerEvents: "auto" }}
                 >
-                  <CreditCard card={card} width={CARD_WIDTH} />
+                  <CreditCard card={card} width={CARD_WIDTH} liveStats={cardLiveStatsMap[card.id]} />
                 </div>
               ))}
             </motion.div>

@@ -30,12 +30,18 @@ export interface CreditCardData {
   imageUrl?: string;
 }
 
-export default function CreditCard({ card, width = 280 }: { card: CreditCardData; width?: number }) {
+export interface CardLiveStats {
+  txns: string;
+  rewards: string;
+  rank: number;
+}
+
+export default function CreditCard({ card, width = 280, liveStats }: { card: CreditCardData; width?: number; liveStats?: CardLiveStats }) {
   const [flipped, setFlipped] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const height   = Math.round(width * 0.63);
   const gradient = CARD_GRADIENTS[card.id] ?? CARD_GRADIENTS.other;
-  const stats    = CARD_STATS[card.id]    ?? CARD_STATS.other;
+  const stats    = liveStats ?? CARD_STATS[card.id] ?? CARD_STATS.other;
   const pad      = Math.round(width * 0.083);
 
   const BACK_STATS = [
