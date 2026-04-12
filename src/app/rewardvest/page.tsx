@@ -239,7 +239,12 @@ export default function RewardVestPage() {
   );
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <motion.div
+      className="min-h-screen"
+      initial={{ opacity: 0, filter: "blur(8px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="px-4 pt-12 pb-3">
         <span className="text-[10px] font-bold tracking-widest" style={{ color: "#5ac8fa" }}>INVEST</span>
         <h1 className="text-2xl font-bold text-white mt-1">AI Investment Advisor</h1>
@@ -765,6 +770,6 @@ export default function RewardVestPage() {
         )}
 
       </div>
-    </div>
+    </motion.div>
   );
 }

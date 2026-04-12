@@ -73,7 +73,12 @@ export default function SmartSwipePage() {
   const best = results?.[0];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <motion.div
+      className="min-h-screen"
+      initial={{ opacity: 0, filter: "blur(8px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
 
       {/* Header */}
       <div className="px-4 pt-12 pb-3">
@@ -270,6 +275,6 @@ export default function SmartSwipePage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }

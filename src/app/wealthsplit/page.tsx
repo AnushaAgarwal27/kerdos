@@ -98,7 +98,12 @@ export default function WealthSplitPage() {
   const totalPoints   = Object.values(USER_CARDS).reduce((s, c) => s + c.pointsBalance, 0);
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <motion.div
+      className="min-h-screen"
+      initial={{ opacity: 0, filter: "blur(8px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="px-4 pt-12 pb-3">
         <span className="text-[10px] font-bold tracking-widest" style={{ color: "#bf5af2" }}>SUMMARY</span>
         <h1 className="text-2xl font-bold text-white mt-1">Financial Command Center</h1>
@@ -520,6 +525,6 @@ export default function WealthSplitPage() {
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

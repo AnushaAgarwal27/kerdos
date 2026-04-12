@@ -15,7 +15,12 @@ const ACTIONS = [
 
 export default function TransactPage() {
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <motion.div
+      className="min-h-screen"
+      initial={{ opacity: 0, filter: "blur(8px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="px-4 pt-12 pb-4">
         <h1 className="text-2xl font-bold text-white mb-1">Transact</h1>
         <p className="text-sm" style={{ color: "var(--text-2)" }}>Quick actions for your rewards</p>
@@ -49,6 +54,6 @@ export default function TransactPage() {
           </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
