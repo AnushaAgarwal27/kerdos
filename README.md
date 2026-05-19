@@ -84,7 +84,7 @@ cd kerdos
 npm install
 ```
 
-### Start development server
+### Run the development server
 
 ```bash
 npm run dev
@@ -105,8 +105,8 @@ npm run dev
 ## Contributors
 
 - Anant Patel
-- Devajsinh Ajitsinh Solanki
 - Anusha Agarwal
+- Devajsinh Ajitsinh Solanki
 - Vedant Shirvi
 
 ---
