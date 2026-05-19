@@ -1,60 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kerdos
 
-## Codex In Terminal
+AI-powered credit card optimization and reward investing platform built at Bitcamp 2026.
 
-Codex CLI is already available in this environment and is currently logged in.
+Kerdos helps users maximize rewards across multiple credit cards, track cashback intelligently, and turn rewards into investment opportunities.
 
-From this project root, you can start Codex in the terminal with:
+---
 
-```bash
-npm run codex
+## Features
+
+### SmartSwipe
+Find the best credit card to use for every purchase based on:
+- Cashback rates
+- Reward points
+- Airline miles
+- Merchant categories
+
+### RewardVest
+Transforms cashback rewards into personalized ETF investment allocations using:
+- Market regime analysis
+- Risk tolerance
+- AI-generated financial insights
+
+### WealthSplit
+A financial dashboard that tracks:
+- Rewards earned
+- Cashback value
+- Investment growth
+- Expense splits
+- Net financial gains
+
+---
+
+## Tech Stack
+
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+
+### Backend & APIs
+- PostgreSQL
+- Supabase
+- Plaid Sandbox
+- RewardsCC API
+- Alpha Vantage
+- DeepSeek V3
+- Featherless.ai
+
+---
+
+## How It Works
+
+```text
+Transaction Input
+        ↓
+Card Reward Analysis
+        ↓
+Best Card Recommendation
+        ↓
+Reward Tracking
+        ↓
+Portfolio Allocation
+        ↓
+AI Investment Insights
 ```
 
-Helpful commands:
+---
+
+## Installation
+
+### Clone the repository
 
 ```bash
-npm run codex:resume
-npm run codex:review
-codex login status
+git clone https://github.com/your-username/kerdos.git
+cd kerdos
 ```
 
-If you ever need to re-authenticate manually:
+### Install dependencies
 
 ```bash
-codex login
+npm install
 ```
 
-## Getting Started
-
-First, run the development server:
+### Start development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Future Improvements
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Real Plaid production integration
+- Browser extension for checkout recommendations
+- International credit card support
+- Brokerage API integrations
+- Automated investing workflows
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Contributors
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Anant Patel
+- Devajsinh Ajitsinh Solanki
+- Anusha Agarwal
+- Vedant Shirvi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Built At
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Bitcamp 2026
